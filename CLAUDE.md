@@ -31,8 +31,8 @@ Desktop-first personal budget tracker. Users log income/expenses, view live KPI 
 | 1 | Core backend: all 6 models, base repo, accounts/transactions/categories routers + tests | ✅ Done |
 | 2 | Income router, `currency_service.py`, `inflation_service.py`, CPI fallback JSON | ✅ Done |
 | 3 | `analytics_service.py` (regression), analytics router, `ConnectionManager`, WebSocket broadcasts | ✅ Done |
-| 4 | Frontend core: Vite scaffold, Zustand stores, React Query, API client, AppShell, TransactionsPage, IncomePage | ⬜ Next |
-| 5 | Charts + live updates: Plotly.js charts, MetricsDashboard WebSocket hook, React Query polling (30s) | ⬜ |
+| 4 | Frontend core: Vite scaffold, Zustand stores, React Query, API client, AppShell, TransactionsPage, IncomePage | ✅ Done |
+| 5 | Charts + live updates: Plotly.js charts, MetricsDashboard WebSocket hook, React Query polling (30s) | ⬜ Next |
 | 6 | Voice input: `voice_service.py` NLP parser, voice router, `useVoiceInput.ts`, `VoiceInputButton` | ⬜ |
 | 7 | Electron packaging: `electron/main.ts`, preload, PyInstaller spec, `electron-builder` config | ⬜ |
 | 8 | Polish: pre-commit hooks (mypy, ruff, tsc), full test suite, `scripts/dev.sh` | ⬜ |
