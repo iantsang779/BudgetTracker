@@ -16,6 +16,8 @@
 ## Git Rules
 - Auto stage + commit after each logical change with conventional commit message
 - NEVER `git push` without explicit user permission
+- GitHub repository: https://github.com/iantsang779/BudgetTracker
+- Git user: iantsang779 <iantsang779@gmail.com>
 
 ## Dev Commands
 - Start dev: `bash scripts/dev.sh`
