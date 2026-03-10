@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Transaction ORM model."""
 
 from datetime import datetime
@@ -28,7 +29,9 @@ class Transaction(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     merchant: Mapped[str] = mapped_column(String(200), nullable=False, default="")
     transaction_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    source: Mapped[str] = mapped_column(String(20), nullable=False, default="manual")  # manual | voice
+    source: Mapped[str] = mapped_column(  # manual | voice
+        String(20), nullable=False, default="manual"
+    )
     voice_transcript: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

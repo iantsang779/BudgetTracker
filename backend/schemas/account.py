@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Account Pydantic schemas."""
 
 from datetime import datetime

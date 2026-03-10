@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Analytics Pydantic schemas."""
 
 from pydantic import BaseModel

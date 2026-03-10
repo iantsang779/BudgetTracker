@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """CPISnapshot ORM model."""
 
 from datetime import datetime

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Database engine, session factory, and declarative base."""
 
 from collections.abc import AsyncGenerator

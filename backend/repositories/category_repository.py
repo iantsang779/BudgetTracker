@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Category data access layer."""
 
 from sqlalchemy import select

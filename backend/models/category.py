@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Category ORM model."""
 
 from datetime import datetime

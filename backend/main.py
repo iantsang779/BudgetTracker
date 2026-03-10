@@ -1,54 +1,23 @@
 from __future__ import annotations
+
 """FastAPI application entry point."""
 
 import argparse
-import asyncio
 import logging
-import uvicorn
-
-from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
+import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
-from backend.database import engine, Base
-from backend.routers import accounts, categories, transactions
+from backend.database import Base, engine
+from backend.routers import accounts, analytics, categories, currency, income, transactions
+from backend.websocket_manager import manager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-class ConnectionManager:
-    """Manages WebSocket connections for live analytics updates."""
-
-    def __init__(self) -> None:
-        """Initialize with empty connection pool."""
-        self._connections: list[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket) -> None:
-        """Accept and register a WebSocket connection."""
-        await websocket.accept()
-        self._connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket) -> None:
-        """Remove a WebSocket connection."""
-        self._connections.remove(websocket)
-
-    async def broadcast(self, message: dict) -> None:  # type: ignore[type-arg]
-        """Send a message to all connected clients."""
-        dead: list[WebSocket] = []
-        for ws in self._connections:
-            try:
-                await ws.send_json(message)
-            except Exception:
-                dead.append(ws)
-        for ws in dead:
-            self._connections.remove(ws)
-
-
-manager = ConnectionManager()
 
 
 @asynccontextmanager
@@ -78,6 +47,9 @@ app.add_middleware(
 app.include_router(accounts.router, prefix="/api/v1")
 app.include_router(categories.router, prefix="/api/v1")
 app.include_router(transactions.router, prefix="/api/v1")
+app.include_router(income.router, prefix="/api/v1")
+app.include_router(currency.router, prefix="/api/v1")
+app.include_router(analytics.router, prefix="/api/v1")
 
 
 @app.get("/health")

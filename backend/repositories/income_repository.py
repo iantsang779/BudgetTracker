@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Income data access layer."""
 
 from datetime import datetime

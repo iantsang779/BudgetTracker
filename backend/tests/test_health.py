@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Tests for health and basic app functionality."""
 
 import pytest

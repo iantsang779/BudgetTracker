@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Account ORM model."""
 
 from datetime import datetime
@@ -27,4 +28,6 @@ class Account(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     transactions: Mapped[list[Transaction]] = relationship("Transaction", back_populates="account")
-    income_entries: Mapped[list[IncomeEntry]] = relationship("IncomeEntry", back_populates="account")
+    income_entries: Mapped[list[IncomeEntry]] = relationship(
+        "IncomeEntry", back_populates="account"
+    )

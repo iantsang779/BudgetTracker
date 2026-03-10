@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Transactions API router."""
 
 from datetime import datetime
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_db
 from backend.repositories.transaction_repository import TransactionRepository
+from backend.routers.analytics import notify_clients
 from backend.schemas.transaction import TransactionCreate, TransactionRead, TransactionUpdate
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
@@ -44,6 +46,7 @@ async def create_transaction(
     """Create a new transaction."""
     repo = TransactionRepository(db)
     txn = await repo.create(**payload.model_dump())
+    await notify_clients(db)
     return TransactionRead.model_validate(txn)
 
 
@@ -71,6 +74,7 @@ async def update_transaction(
     txn = await repo.update(transaction_id, **payload.model_dump(exclude_none=True))
     if txn is None:
         raise HTTPException(status_code=404, detail="Transaction not found")
+    await notify_clients(db)
     return TransactionRead.model_validate(txn)
 
 
@@ -84,3 +88,4 @@ async def delete_transaction(
     deleted = await repo.soft_delete(transaction_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Transaction not found")
+    await notify_clients(db)

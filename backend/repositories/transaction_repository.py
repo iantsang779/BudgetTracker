@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Transaction data access layer."""
 
 from datetime import datetime

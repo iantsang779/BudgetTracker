@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Tests for the transactions API."""
 
 import pytest
@@ -37,11 +38,21 @@ async def test_list_transactions_filter_by_account(client: AsyncClient) -> None:
     acc2 = await _create_account(client, "Acc2")
     await client.post(
         "/api/v1/transactions/",
-        json={"account_id": acc1, "amount_local": 10.0, "amount_base": 10.0, "transaction_date": "2024-01-01T00:00:00"},
+        json={
+            "account_id": acc1,
+            "amount_local": 10.0,
+            "amount_base": 10.0,
+            "transaction_date": "2024-01-01T00:00:00",
+        },
     )
     await client.post(
         "/api/v1/transactions/",
-        json={"account_id": acc2, "amount_local": 20.0, "amount_base": 20.0, "transaction_date": "2024-01-02T00:00:00"},
+        json={
+            "account_id": acc2,
+            "amount_local": 20.0,
+            "amount_base": 20.0,
+            "transaction_date": "2024-01-02T00:00:00",
+        },
     )
     resp = await client.get(f"/api/v1/transactions/?account_id={acc1}")
     assert resp.status_code == 200
@@ -56,7 +67,12 @@ async def test_delete_transaction(client: AsyncClient) -> None:
     acc_id = await _create_account(client)
     create = await client.post(
         "/api/v1/transactions/",
-        json={"account_id": acc_id, "amount_local": 5.0, "amount_base": 5.0, "transaction_date": "2024-01-10T00:00:00"},
+        json={
+            "account_id": acc_id,
+            "amount_local": 5.0,
+            "amount_base": 5.0,
+            "transaction_date": "2024-01-10T00:00:00",
+        },
     )
     txn_id = create.json()["id"]
     assert (await client.delete(f"/api/v1/transactions/{txn_id}")).status_code == 204

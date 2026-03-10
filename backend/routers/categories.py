@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Categories API router."""
 
 from fastapi import APIRouter, Depends, HTTPException, status

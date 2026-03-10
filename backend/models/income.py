@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """IncomeEntry ORM model."""
 
 from datetime import datetime
@@ -23,7 +24,9 @@ class IncomeEntry(Base):
     amount_local: Mapped[float] = mapped_column(Float, nullable=False)
     currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
     amount_base: Mapped[float] = mapped_column(Float, nullable=False)  # USD
-    recurrence: Mapped[str] = mapped_column(String(20), nullable=False, default="monthly")  # monthly | yearly | one_off
+    recurrence: Mapped[str] = mapped_column(  # monthly | yearly | one_off
+        String(20), nullable=False, default="monthly"
+    )
     description: Mapped[str] = mapped_column(String(200), nullable=False, default="")
     effective_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     end_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 """Generic base repository with CRUD operations."""
 
+from datetime import UTC
 from typing import Any, Generic, TypeVar
 
 from sqlalchemy import select, update
@@ -61,11 +63,11 @@ class BaseRepository(Generic[ModelT]):
 
     async def soft_delete(self, id: int) -> bool:
         """Soft-delete a record by setting deleted_at."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         result = await self.session.execute(
             update(self.model)
             .where(self.model.id == id)  # type: ignore[attr-defined]
-            .values(deleted_at=datetime.now(timezone.utc))
+            .values(deleted_at=datetime.now(UTC))
         )
         return result.rowcount > 0

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Account data access layer."""
 
 from sqlalchemy.ext.asyncio import AsyncSession

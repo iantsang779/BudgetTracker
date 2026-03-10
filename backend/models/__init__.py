@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """ORM models package."""
 
 from backend.models.account import Account
