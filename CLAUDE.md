@@ -201,22 +201,61 @@ All monetary amounts stored as `REAL` in USD (`amount_base`) at write time; disp
 
 ---
 
-## Phase 4 — Frontend Core (Next)
+## Phase 5 — Charts + Live Updates (Next)
 
-Scaffold:
-```bash
-npm create vite@latest frontend -- --template react-ts
-cd frontend && npm install axios @tanstack/react-query zustand react-plotly.js plotly.js
+All chart components use `react-plotly.js`. DashboardPage already has placeholder sections; replace them with real charts. WebSocket hook (`useWebSocket`) and 30s polling (`useMetrics`) are already wired — charts just need to consume the data.
+
+### Files to create
+
+| File | Purpose |
+|---|---|
+| `frontend/src/components/charts/SavingsProjectionChart.tsx` | Line chart: actual vs predicted with upper/lower bands — data from `useSavingsProjection()` |
+| `frontend/src/components/charts/SpendingByCategoryChart.tsx` | Pie/donut chart — data from `useSpendingByCategory()` |
+| `frontend/src/components/charts/SpendingTrendChart.tsx` | Bar chart (monthly) — data from `useSpendingOverTime()` |
+| `frontend/src/components/metrics/MetricsDashboard.tsx` | Extract KPI cards from DashboardPage into standalone component; accepts `MetricsResponse` prop |
+
+### Chart implementation notes
+
+```tsx
+// SavingsProjectionChart — Plotly scatter with fill bands
+traces: [
+  { name: 'Actual',     x: periods, y: actuals,    mode: 'lines+markers' },
+  { name: 'Predicted',  x: periods, y: predicted,  mode: 'lines' },
+  { name: 'Upper band', x: periods, y: upper,      fill: 'tonexty', line: { width: 0 } },
+  { name: 'Lower band', x: periods, y: lower,      fill: 'tonexty', line: { width: 0 } },
+]
+
+// SpendingByCategoryChart — Plotly pie
+traces: [{ type: 'pie', labels: names, values: totals, hole: 0.4 }]
+
+// SpendingTrendChart — Plotly bar
+traces: [{ type: 'bar', x: periods, y: totals }]
 ```
 
-Key files to create:
-- `frontend/src/api/client.ts` — Axios base with `/api/v1` prefix
-- `frontend/src/api/{accounts,transactions,income,analytics,currency}.ts`
-- `frontend/src/types/` — TS interfaces matching Pydantic schemas
-- `frontend/src/store/useAppStore.ts` — Zustand: `displayCurrency`, `inflationOverride`, `sidebarOpen`
-- `frontend/src/hooks/useWebSocket.ts` — auto-reconnect, calls `queryClient.invalidateQueries` on `metrics_updated`
-- `frontend/src/hooks/useTransactions.ts` — React Query CRUD
-- `frontend/src/hooks/useAnalytics.ts` — React Query, 30s polling
-- `frontend/src/components/layout/AppShell.tsx` — Sidebar + TopBar + `<Outlet />`
-- `frontend/src/pages/` — DashboardPage, TransactionsPage, IncomePage
-- `frontend/vite.config.ts` — proxy `/api` and `/ws` to `http://localhost:8000`
+### DashboardPage changes
+- Replace charts placeholder `<div>` with the three chart components
+- Replace inline KPI cards with `<MetricsDashboard metrics={metrics} />`
+- Add `months_ahead` slider (1–24) passed to `useSavingsProjection(months)`
+
+### Plotly layout defaults (dark theme)
+```ts
+const darkLayout = {
+  paper_bgcolor: '#181825',
+  plot_bgcolor: '#181825',
+  font: { color: '#cdd6f4' },
+  margin: { t: 30, r: 20, b: 40, l: 50 },
+}
+```
+
+### Dev commands
+```bash
+source /home/iants/.nvm/nvm.sh
+cd frontend && npm run dev   # frontend :5173
+# separate terminal:
+source venv/bin/activate && cd backend && uvicorn main:app --reload --port 8000
+```
+
+### Verification
+- `npx tsc --noEmit` → 0 errors
+- Dashboard shows all three charts updating when transactions are added
+- WebSocket reconnects after backend restart (check DevTools → Network → WS)
