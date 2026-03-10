@@ -199,6 +199,24 @@ All monetary amounts stored as `REAL` in USD (`amount_base`) at write time; disp
 - Lint fix: `python3 -m ruff check --fix backend/ && python3 -m ruff format backend/`
 - Start dev (Phase 8): `bash scripts/dev.sh` → FastAPI :8000, React :5173
 
+### Starting the dev servers (until Phase 8)
+
+**Backend** — must run from project root so `backend.*` imports resolve:
+```bash
+source /home/iants/BudgetTracker/venv/bin/activate
+cd /home/iants/BudgetTracker
+uvicorn backend.main:app --reload --port 8000
+```
+
+**Frontend** — Vite proxies `/api` and `/ws` to `localhost:8000`:
+```bash
+source /home/iants/.nvm/nvm.sh
+cd /home/iants/BudgetTracker/frontend
+npm run dev
+```
+
+Open http://localhost:5173 — both servers must be running simultaneously.
+
 ---
 
 ## Phase 6 — Voice Input (Next)
