@@ -248,7 +248,7 @@ Implement voice-based transaction entry using the Web Speech API in Electron's C
 source /home/iants/.nvm/nvm.sh
 cd frontend && npm run dev   # frontend :5173
 # separate terminal:
-source venv/bin/activate && cd backend && uvicorn main:app --reload --port 8000
+source venv/bin/activate && uvicorn backend.main:app --reload --port 8000
 ```
 
 ### Verification

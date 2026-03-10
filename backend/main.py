@@ -12,12 +12,43 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
-from backend.database import Base, engine
+from backend.database import Base, engine, get_db
+from backend.models.category import Category
 from backend.routers import accounts, analytics, categories, currency, income, transactions
 from backend.websocket_manager import manager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+_DEFAULT_EXPENSE_CATEGORIES = [
+    {"name": "Groceries", "color_hex": "#a6e3a1", "icon": "cart"},
+    {"name": "Eating Out", "color_hex": "#fab387", "icon": "utensils"},
+    {"name": "Bills & Utilities", "color_hex": "#89b4fa", "icon": "bolt"},
+    {"name": "Transport", "color_hex": "#cba6f7", "icon": "car"},
+    {"name": "Health & Medical", "color_hex": "#f38ba8", "icon": "heart"},
+    {"name": "Entertainment", "color_hex": "#f9e2af", "icon": "film"},
+    {"name": "Shopping", "color_hex": "#94e2d5", "icon": "bag"},
+    {"name": "Travel", "color_hex": "#89dceb", "icon": "plane"},
+    {"name": "Education", "color_hex": "#b4befe", "icon": "book"},
+    {"name": "Other", "color_hex": "#6c7086", "icon": "tag"},
+]
+
+
+async def _seed_default_categories() -> None:
+    """Insert default expense categories if the table is empty."""
+    from sqlalchemy import func, select
+
+    async for db in get_db():
+        result = await db.execute(
+            select(func.count()).select_from(Category).where(Category.is_income.is_(False))
+        )
+        count = result.scalar_one()
+        if count == 0:
+            for cat in _DEFAULT_EXPENSE_CATEGORIES:
+                db.add(Category(is_income=False, **cat))
+            await db.commit()
+            logger.info("Seeded %d default expense categories", len(_DEFAULT_EXPENSE_CATEGORIES))
 
 
 @asynccontextmanager
@@ -26,6 +57,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables created/verified")
+    await _seed_default_categories()
     yield
     await engine.dispose()
 

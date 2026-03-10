@@ -42,7 +42,7 @@ export interface CategoryRead {
   color_hex: string
   icon: string
   is_income: boolean
-  deleted_at: string | null
+  created_at: string
 }
 
 // ── Transactions ──────────────────────────────────────────────────────────────

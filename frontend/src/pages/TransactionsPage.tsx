@@ -4,6 +4,7 @@ import {
   useCreateTransaction,
   useDeleteTransaction,
 } from '../hooks/useTransactions'
+import { useCategories } from '../hooks/useCategories'
 import type { TransactionCreate, TransactionFilters } from '../types'
 
 const today = new Date().toISOString().slice(0, 10)
@@ -35,6 +36,7 @@ export default function TransactionsPage() {
   const [showForm, setShowForm] = useState(false)
 
   const { data: transactions, isLoading } = useTransactions(filters)
+  const { data: expenseCategories } = useCategories(false)
   const createMutation = useCreateTransaction()
   const deleteMutation = useDeleteTransaction()
 
@@ -94,18 +96,22 @@ export default function TransactionsPage() {
           onSubmit={handleSubmit}
           style={{ display: 'flex', flexWrap: 'wrap', gap: 10, background: '#181825', padding: 16, borderRadius: 10, border: '1px solid #313244' }}
         >
-          <input style={inputStyle} type="number" placeholder="Account ID" required
-            value={form.account_id}
-            onChange={(e) => setForm({ ...form, account_id: Number(e.target.value) })} />
           <input style={inputStyle} type="number" step="0.01" placeholder="Amount (local)" required
             value={form.amount_local}
-            onChange={(e) => setForm({ ...form, amount_local: Number(e.target.value) })} />
+            onChange={(e) => setForm({ ...form, amount_local: Number(e.target.value), amount_base: Number(e.target.value) })} />
           <input style={inputStyle} placeholder="Currency" required
             value={form.currency_code}
             onChange={(e) => setForm({ ...form, currency_code: e.target.value })} />
-          <input style={inputStyle} type="number" step="0.01" placeholder="Amount (USD base)" required
-            value={form.amount_base}
-            onChange={(e) => setForm({ ...form, amount_base: Number(e.target.value) })} />
+          <select
+            style={inputStyle}
+            value={form.category_id ?? ''}
+            onChange={(e) => setForm({ ...form, category_id: e.target.value ? Number(e.target.value) : null })}
+          >
+            <option value="">— Category —</option>
+            {expenseCategories?.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
           <input style={inputStyle} placeholder="Merchant"
             value={form.merchant ?? ''}
             onChange={(e) => setForm({ ...form, merchant: e.target.value })} />
@@ -148,7 +154,11 @@ export default function TransactionsPage() {
                   <td style={{ padding: '8px 12px' }}>{t.description ?? '—'}</td>
                   <td style={{ padding: '8px 12px' }}>{t.amount_local.toLocaleString()}</td>
                   <td style={{ padding: '8px 12px' }}>{t.currency_code}</td>
-                  <td style={{ padding: '8px 12px' }}>{t.category_id ?? '—'}</td>
+                  <td style={{ padding: '8px 12px' }}>
+                    {t.category_id
+                      ? (expenseCategories?.find((c) => c.id === t.category_id)?.name ?? t.category_id)
+                      : '—'}
+                  </td>
                   <td style={{ padding: '8px 12px' }}>
                     <button
                       onClick={() => deleteMutation.mutate(t.id)}
