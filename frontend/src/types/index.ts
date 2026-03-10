@@ -174,11 +174,14 @@ export interface SavingsProjectionResponse {
 export interface CategorySpending {
   category_id: number | null
   category_name: string
+  color_hex: string
   total_base: number
+  percentage: number
 }
 
 export interface SpendingByCategoryResponse {
-  groups: CategorySpending[]
+  items: CategorySpending[]
+  total_base: number
 }
 
 export interface SpendingOverTimePoint {
