@@ -32,8 +32,8 @@ Desktop-first personal budget tracker. Users log income/expenses, view live KPI 
 | 2 | Income router, `currency_service.py`, `inflation_service.py`, CPI fallback JSON | ✅ Done |
 | 3 | `analytics_service.py` (regression), analytics router, `ConnectionManager`, WebSocket broadcasts | ✅ Done |
 | 4 | Frontend core: Vite scaffold, Zustand stores, React Query, API client, AppShell, TransactionsPage, IncomePage | ✅ Done |
-| 5 | Charts + live updates: Plotly.js charts, MetricsDashboard WebSocket hook, React Query polling (30s) | ⬜ Next |
-| 6 | Voice input: `voice_service.py` NLP parser, voice router, `useVoiceInput.ts`, `VoiceInputButton` | ⬜ |
+| 5 | Charts + live updates: Plotly.js charts, MetricsDashboard WebSocket hook, React Query polling (30s) | ✅ Done |
+| 6 | Voice input: `voice_service.py` NLP parser, voice router, `useVoiceInput.ts`, `VoiceInputButton` | ⬜ Next |
 | 7 | Electron packaging: `electron/main.ts`, preload, PyInstaller spec, `electron-builder` config | ⬜ |
 | 8 | Polish: pre-commit hooks (mypy, ruff, tsc), full test suite, `scripts/dev.sh` | ⬜ |
 
@@ -201,51 +201,29 @@ All monetary amounts stored as `REAL` in USD (`amount_base`) at write time; disp
 
 ---
 
-## Phase 5 — Charts + Live Updates (Next)
+## Phase 6 — Voice Input (Next)
 
-All chart components use `react-plotly.js`. DashboardPage already has placeholder sections; replace them with real charts. WebSocket hook (`useWebSocket`) and 30s polling (`useMetrics`) are already wired — charts just need to consume the data.
+Implement voice-based transaction entry using the Web Speech API in Electron's Chromium and a backend NLP parser.
 
 ### Files to create
 
 | File | Purpose |
 |---|---|
-| `frontend/src/components/charts/SavingsProjectionChart.tsx` | Line chart: actual vs predicted with upper/lower bands — data from `useSavingsProjection()` |
-| `frontend/src/components/charts/SpendingByCategoryChart.tsx` | Pie/donut chart — data from `useSpendingByCategory()` |
-| `frontend/src/components/charts/SpendingTrendChart.tsx` | Bar chart (monthly) — data from `useSpendingOverTime()` |
-| `frontend/src/components/metrics/MetricsDashboard.tsx` | Extract KPI cards from DashboardPage into standalone component; accepts `MetricsResponse` prop |
+| `backend/services/voice_service.py` | NLP parser: extract amount, category, merchant, date from transcript |
+| `backend/routers/voice.py` | `POST /voice/parse` → `VoiceParseResponse` |
+| `frontend/src/hooks/useVoiceInput.ts` | Web Speech API hook: start/stop, transcript, parsed result |
+| `frontend/src/components/transactions/VoiceInputButton.tsx` | Mic button: triggers hook, shows transcript, auto-fills TransactionForm |
 
-### Chart implementation notes
+### voice_service.py notes
+- Input: raw transcript string
+- Output: `VoiceParseResponse` with `amount`, `currency_code`, `description`, `merchant`, `transaction_date`, `category_hint`, `confidence`
+- Use regex + keyword matching (no external ML dependency for Phase 6)
+- Examples: "spent 42 dollars on coffee at Starbucks" → `{amount: 42, currency: USD, merchant: "Starbucks", category_hint: "coffee"}`
 
-```tsx
-// SavingsProjectionChart — Plotly scatter with fill bands
-traces: [
-  { name: 'Actual',     x: periods, y: actuals,    mode: 'lines+markers' },
-  { name: 'Predicted',  x: periods, y: predicted,  mode: 'lines' },
-  { name: 'Upper band', x: periods, y: upper,      fill: 'tonexty', line: { width: 0 } },
-  { name: 'Lower band', x: periods, y: lower,      fill: 'tonexty', line: { width: 0 } },
-]
-
-// SpendingByCategoryChart — Plotly pie
-traces: [{ type: 'pie', labels: names, values: totals, hole: 0.4 }]
-
-// SpendingTrendChart — Plotly bar
-traces: [{ type: 'bar', x: periods, y: totals }]
-```
-
-### DashboardPage changes
-- Replace charts placeholder `<div>` with the three chart components
-- Replace inline KPI cards with `<MetricsDashboard metrics={metrics} />`
-- Add `months_ahead` slider (1–24) passed to `useSavingsProjection(months)`
-
-### Plotly layout defaults (dark theme)
-```ts
-const darkLayout = {
-  paper_bgcolor: '#181825',
-  plot_bgcolor: '#181825',
-  font: { color: '#cdd6f4' },
-  margin: { t: 30, r: 20, b: 40, l: 50 },
-}
-```
+### useVoiceInput.ts notes
+- `window.SpeechRecognition` / `window.webkitSpeechRecognition`
+- Returns `{ listening, transcript, start, stop, parseResult }`
+- On final transcript: POST to `/api/v1/voice/parse` → auto-populate form fields
 
 ### Dev commands
 ```bash
@@ -257,5 +235,5 @@ source venv/bin/activate && cd backend && uvicorn main:app --reload --port 8000
 
 ### Verification
 - `npx tsc --noEmit` → 0 errors
-- Dashboard shows all three charts updating when transactions are added
-- WebSocket reconnects after backend restart (check DevTools → Network → WS)
+- `pytest tests/ -v --cov=. --cov-fail-under=80`
+- Click mic button → speak → transcript appears → form fields auto-filled
