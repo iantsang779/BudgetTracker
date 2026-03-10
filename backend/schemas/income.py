@@ -3,18 +3,19 @@ from __future__ import annotations
 """Income Pydantic schemas."""
 
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class IncomeCreate(BaseModel):
     """Fields required to create an income entry."""
 
     account_id: int
-    amount_local: float
+    amount_local: float = Field(gt=0)
     currency_code: str = "USD"
-    amount_base: float
-    recurrence: str = "monthly"
+    amount_base: float = Field(gt=0)
+    recurrence: Literal["monthly", "yearly", "one_off"] = "monthly"
     description: str = ""
     effective_date: datetime
     end_date: datetime | None = None

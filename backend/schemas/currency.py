@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CurrencyRateRead(BaseModel):
@@ -22,7 +22,7 @@ class CurrencyRateRead(BaseModel):
 class ConvertRequest(BaseModel):
     """Currency conversion request."""
 
-    amount: float
+    amount: float = Field(gt=0)
     from_code: str
     to_code: str
 

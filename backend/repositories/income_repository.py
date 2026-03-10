@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Income data access layer."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +20,7 @@ class IncomeRepository(BaseRepository[IncomeEntry]):
 
     async def list_active(self, as_of: datetime | None = None) -> list[IncomeEntry]:
         """List active income entries (not ended, not deleted)."""
-        ref = as_of or datetime.utcnow()
+        ref = as_of or datetime.now(UTC)
         stmt = select(IncomeEntry).where(
             IncomeEntry.deleted_at.is_(None),
             IncomeEntry.effective_date <= ref,

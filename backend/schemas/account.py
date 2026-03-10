@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AccountCreate(BaseModel):
@@ -12,7 +12,7 @@ class AccountCreate(BaseModel):
 
     name: str
     currency_code: str = "USD"
-    balance_initial: float = 0.0
+    balance_initial: float = Field(default=0.0, ge=0)
 
 
 class AccountUpdate(BaseModel):

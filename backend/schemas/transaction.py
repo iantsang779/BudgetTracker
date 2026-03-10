@@ -3,8 +3,9 @@ from __future__ import annotations
 """Transaction Pydantic schemas."""
 
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TransactionCreate(BaseModel):
@@ -12,13 +13,13 @@ class TransactionCreate(BaseModel):
 
     account_id: int
     category_id: int | None = None
-    amount_local: float
+    amount_local: float = Field(gt=0)
     currency_code: str = "USD"
-    amount_base: float
+    amount_base: float = Field(gt=0)
     description: str = ""
     merchant: str = ""
     transaction_date: datetime
-    source: str = "manual"
+    source: Literal["manual", "voice"] = "manual"
     voice_transcript: str | None = None
 
 

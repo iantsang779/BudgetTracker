@@ -3,7 +3,7 @@ from __future__ import annotations
 """Analytics service for KPI computation and regression-based spending projections."""
 
 import logging
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 from typing import NamedTuple
 
 import numpy as np
@@ -66,7 +66,7 @@ class AnalyticsService:
         total_spending: float = float(total_result.scalar_one())
 
         # Current calendar-month spending
-        now = datetime.now()
+        now = datetime.now(UTC)
         current_month = f"{now.year}-{now.month:02d}"
         month_result = await self.session.execute(
             select(func.coalesce(func.sum(Transaction.amount_base), 0.0)).where(
@@ -315,5 +315,5 @@ class AnalyticsService:
     @staticmethod
     def _current_period() -> str:
         """Return the current month as a YYYY-MM string."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         return f"{now.year}-{now.month:02d}"
