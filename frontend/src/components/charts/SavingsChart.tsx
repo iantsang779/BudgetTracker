@@ -1,9 +1,9 @@
 import Plot from 'react-plotly.js'
 import type { Layout } from 'plotly.js'
-import type { MetricsResponse } from '../../types'
 
 interface Props {
-  metrics: MetricsResponse
+  spending: number
+  income: number
 }
 
 const darkLayout: Partial<Layout> = {
@@ -14,26 +14,22 @@ const darkLayout: Partial<Layout> = {
   legend: { bgcolor: 'transparent' },
 }
 
-export default function SavingsChart({ metrics }: Props) {
-  const spending = Math.max(0, metrics.total_spending_base)
-  const income = Math.max(0, metrics.monthly_income_base)
-  const savings = Math.max(0, income - spending)
+export default function SavingsChart({ spending, income }: Props) {
+  const spendingVal = Math.max(0, spending)
+  const incomeVal = Math.max(0, income)
+  const savings = Math.max(0, incomeVal - spendingVal)
 
-  const labels = ['Spending', 'Savings']
-  const values = [spending, savings]
-  const colors = ['#f38ba8', '#a6e3a1']
-
-  const centre = income > 0
-    ? `$${income.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+  const centre = incomeVal > 0
+    ? `$${incomeVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
     : '$0'
 
   const traces: Plotly.Data[] = [
     {
       type: 'pie',
-      labels,
-      values,
+      labels: ['Spending', 'Savings'],
+      values: [spendingVal, savings],
       hole: 0.4,
-      marker: { colors },
+      marker: { colors: ['#f38ba8', '#a6e3a1'] },
       textinfo: 'label+percent',
       hovertemplate: '%{label}: $%{value:.2f} (%{percent})<extra></extra>',
     },

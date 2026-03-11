@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useMetrics, useCumulativeSpending, useSpendingByCategory, useSpendingOverTime } from '../hooks/useAnalytics'
@@ -53,6 +54,10 @@ const emptyState: React.CSSProperties = {
   color: '#6c7086',
 }
 
+function currentYearMonth(): string {
+  return new Date().toISOString().slice(0, 7)
+}
+
 export default function DashboardPage() {
   const queryClient = useQueryClient()
   useWebSocket(queryClient)
@@ -60,8 +65,25 @@ export default function DashboardPage() {
   const { data: metrics, isLoading: metricsLoading } = useMetrics()
   const { data: summary, isLoading: summaryLoading } = useIncomeSummary()
   const { data: cumulative, isLoading: cumulativeLoading } = useCumulativeSpending()
-  const { data: byCategory, isLoading: byCategoryLoading } = useSpendingByCategory()
   const { data: overTime, isLoading: overTimeLoading } = useSpendingOverTime()
+
+  // Derive available months from spending-over-time, default to current month
+  const availableMonths = useMemo(() => {
+    const fromData = overTime?.points.map(p => p.period) ?? []
+    const cur = currentYearMonth()
+    return fromData.includes(cur) ? fromData : [...fromData, cur]
+  }, [overTime])
+
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => currentYearMonth())
+
+  const monthStart = `${selectedMonth}-01`
+  const monthEnd = useMemo(() => {
+    const [y, m] = selectedMonth.split('-').map(Number)
+    const last = new Date(y, m, 0).getDate()
+    return `${selectedMonth}-${String(last).padStart(2, '0')}`
+  }, [selectedMonth])
+
+  const { data: byCategory, isLoading: byCategoryLoading } = useSpendingByCategory(monthStart, monthEnd)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -118,6 +140,26 @@ export default function DashboardPage() {
 
       {/* Spending by Category + Savings side by side */}
       <section>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <h2 style={{ ...sectionHeading, marginBottom: 0 }}>Monthly Breakdown</h2>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            style={{
+              background: '#313244',
+              border: '1px solid #45475a',
+              borderRadius: 6,
+              padding: '4px 10px',
+              color: '#cdd6f4',
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            {availableMonths.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
           <div>
             <h2 style={sectionHeading}>Spending by Category</h2>
@@ -126,7 +168,7 @@ export default function DashboardPage() {
             ) : byCategory && byCategory.items.length > 0 ? (
               <SpendingByCategoryChart data={byCategory} />
             ) : (
-              <div style={emptyState}>No category data yet — add transactions to see the breakdown.</div>
+              <div style={emptyState}>No spending for {selectedMonth}.</div>
             )}
           </div>
           <div>
@@ -134,7 +176,10 @@ export default function DashboardPage() {
             {metricsLoading ? (
               <p style={{ color: '#6c7086' }}>Loading…</p>
             ) : metrics ? (
-              <SavingsChart metrics={metrics} />
+              <SavingsChart
+                spending={byCategory?.total_base ?? 0}
+                income={metrics.monthly_income_base}
+              />
             ) : (
               <div style={emptyState}>No data yet — add income and transactions to see savings.</div>
             )}
