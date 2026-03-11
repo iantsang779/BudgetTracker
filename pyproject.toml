@@ -1,6 +1,9 @@
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["backend/tests"]
+markers = [
+    "integration: live API/network tests (require .env secrets)",
+]
 
 [tool.ruff]
 line-length = 100
