@@ -9,31 +9,24 @@ class MetricsResponse(BaseModel):
     """Live KPI metrics."""
 
     total_spending_base: float
-    predicted_monthly_base: float
     savings_rate: float
     inflation_adjusted_spending: float
     monthly_income_base: float
-    regression_slope: float
-    regression_r2: float
 
 
-class ProjectionPoint(BaseModel):
-    """A single point in the savings projection chart."""
+class CumulativePoint(BaseModel):
+    """A single month's spending in the cumulative chart."""
 
     period: str  # YYYY-MM
-    actual: float | None
-    predicted: float
-    upper_band: float
-    lower_band: float
+    monthly_total: float
+    cumulative_total: float
 
 
-class SavingsProjectionResponse(BaseModel):
-    """Savings projection data for charting."""
+class CumulativeSpendingResponse(BaseModel):
+    """Cumulative spending data for a given year."""
 
-    points: list[ProjectionPoint]
-    slope: float
-    r2_score: float
-    error_std: float
+    points: list[CumulativePoint]
+    year: int
 
 
 class CategorySpending(BaseModel):

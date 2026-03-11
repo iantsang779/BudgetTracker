@@ -50,11 +50,8 @@ async def test_metrics_empty_db(client: AsyncClient) -> None:
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_spending_base"] == 0.0
-    assert data["predicted_monthly_base"] == 0.0
     assert data["savings_rate"] == 0.0
     assert data["monthly_income_base"] == 0.0
-    assert data["regression_slope"] == 0.0
-    assert data["regression_r2"] == 0.0
 
 
 @pytest.mark.asyncio
@@ -98,46 +95,34 @@ async def test_spending_by_category_empty(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_savings_projection_fallback(client: AsyncClient) -> None:
-    """Projection falls back to average when fewer than 3 months of history."""
-    acc_id = await _create_account(client)
-    cat_id = await _create_category(client)
-    await _create_transaction(client, acc_id, cat_id, 100.0, "2026-01-05")
-
-    resp = await client.get("/api/v1/analytics/savings-projection")
+async def test_cumulative_spending_empty(client: AsyncClient) -> None:
+    """Cumulative spending returns empty points on empty database."""
+    resp = await client.get("/api/v1/analytics/spending-cumulative")
     assert resp.status_code == 200
     data = resp.json()
-    assert data["slope"] == 0.0
-    assert data["r2_score"] == 0.0
-    # 1 historical + 6 projected = 7 total points
-    assert len(data["points"]) == 7
-    # The first point is historical (has actual)
-    assert data["points"][0]["actual"] == pytest.approx(100.0)
-    # All projected points have actual=None
-    for pt in data["points"][1:]:
-        assert pt["actual"] is None
+    assert data["points"] == []
 
 
 @pytest.mark.asyncio
-async def test_savings_projection_regression(client: AsyncClient) -> None:
-    """Projection runs regression for 4+ months of historical data."""
+async def test_cumulative_spending_groups_by_month(client: AsyncClient) -> None:
+    """Cumulative spending accumulates across months within the year."""
     acc_id = await _create_account(client)
     cat_id = await _create_category(client)
-    for month, amount in [
-        ("2025-09", 100.0),
-        ("2025-10", 120.0),
-        ("2025-11", 140.0),
-        ("2025-12", 160.0),
-    ]:
-        await _create_transaction(client, acc_id, cat_id, amount, f"{month}-01")
+    await _create_transaction(client, acc_id, cat_id, 100.0, "2026-01-05")
+    await _create_transaction(client, acc_id, cat_id, 50.0, "2026-01-20")
+    await _create_transaction(client, acc_id, cat_id, 200.0, "2026-02-10")
 
-    resp = await client.get("/api/v1/analytics/savings-projection")
+    resp = await client.get("/api/v1/analytics/spending-cumulative?year=2026")
     assert resp.status_code == 200
     data = resp.json()
-    # 4 historical + 6 projected
-    assert len(data["points"]) == 10
-    assert data["r2_score"] > 0.99  # perfect linear trend → R²≈1
-    assert data["slope"] > 0  # spending is increasing
+    assert data["year"] == 2026
+    assert len(data["points"]) == 2
+    assert data["points"][0]["period"] == "2026-01"
+    assert data["points"][0]["monthly_total"] == pytest.approx(150.0)
+    assert data["points"][0]["cumulative_total"] == pytest.approx(150.0)
+    assert data["points"][1]["period"] == "2026-02"
+    assert data["points"][1]["monthly_total"] == pytest.approx(200.0)
+    assert data["points"][1]["cumulative_total"] == pytest.approx(350.0)
 
 
 @pytest.mark.asyncio

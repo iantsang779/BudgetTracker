@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useIncomes, useIncomeSummary, useCreateIncome, useDeleteIncome } from '../hooks/useIncome'
-import type { IncomeCreate, Recurrence } from '../types'
+import { useIncomes, useIncomeSummary, useCreateIncome, useUpdateIncome, useDeleteIncome } from '../hooks/useIncome'
+import type { IncomeCreate, IncomeRead, Recurrence } from '../types'
 
 const today = new Date().toISOString().slice(0, 10)
 
@@ -35,20 +35,47 @@ const card: React.CSSProperties = {
 export default function IncomePage() {
   const [form, setForm] = useState<IncomeCreate>(defaultForm)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   const { data: incomes, isLoading } = useIncomes()
   const { data: summary } = useIncomeSummary()
   const createMutation = useCreateIncome()
+  const updateMutation = useUpdateIncome()
   const deleteMutation = useDeleteIncome()
+
+  function handleEdit(inc: IncomeRead) {
+    setForm({
+      account_id: inc.account_id,
+      amount_local: inc.amount_local,
+      currency_code: inc.currency_code,
+      amount_base: inc.amount_base,
+      recurrence: inc.recurrence,
+      description: inc.description ?? '',
+      effective_date: inc.effective_date.slice(0, 10),
+      end_date: inc.end_date ? inc.end_date.slice(0, 10) : null,
+    })
+    setEditingId(inc.id)
+    setShowForm(true)
+  }
+
+  function handleCancel() {
+    setForm(defaultForm)
+    setEditingId(null)
+    setShowForm(false)
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    createMutation.mutate(form, {
-      onSuccess: () => {
-        setForm(defaultForm)
-        setShowForm(false)
-      },
-    })
+    if (editingId !== null) {
+      updateMutation.mutate({ id: editingId, data: form }, { onSuccess: handleCancel })
+    } else {
+      createMutation.mutate(form, {
+        onSuccess: () => {
+          setForm(defaultForm)
+          setShowForm(false)
+        },
+      })
+    }
   }
 
   return (
@@ -56,7 +83,7 @@ export default function IncomePage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Income</h1>
         <button
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => (showForm && editingId === null ? handleCancel() : setShowForm((v) => !v))}
           style={{ ...inputStyle, cursor: 'pointer', background: '#cba6f7', color: '#1e1e2e', fontWeight: 600, border: 'none' }}
         >
           {showForm ? 'Cancel' : '+ New Income'}
@@ -122,8 +149,13 @@ export default function IncomePage() {
               onChange={(e) => setForm({ ...form, end_date: e.target.value || null })} />
           </div>
           <button type="submit" style={{ ...inputStyle, background: '#a6e3a1', color: '#1e1e2e', fontWeight: 600, cursor: 'pointer', border: 'none' }}>
-            Save
+            {editingId !== null ? 'Save Changes' : 'Save'}
           </button>
+          {editingId !== null && (
+            <button type="button" onClick={handleCancel} style={{ ...inputStyle, cursor: 'pointer', border: 'none' }}>
+              Cancel
+            </button>
+          )}
         </form>
       )}
 
@@ -148,14 +180,20 @@ export default function IncomePage() {
             </thead>
             <tbody>
               {incomes.map((inc) => (
-                <tr key={inc.id} style={{ borderBottom: '1px solid #313244' }}>
+                <tr key={inc.id} style={{ borderBottom: '1px solid #313244', background: editingId === inc.id ? '#1e1e2e' : 'transparent' }}>
                   <td style={{ padding: '8px 12px' }}>{inc.description ?? '—'}</td>
                   <td style={{ padding: '8px 12px' }}>{inc.amount_local.toLocaleString()}</td>
                   <td style={{ padding: '8px 12px' }}>{inc.currency_code}</td>
                   <td style={{ padding: '8px 12px' }}>{inc.recurrence}</td>
-                  <td style={{ padding: '8px 12px' }}>{inc.effective_date}</td>
-                  <td style={{ padding: '8px 12px' }}>{inc.end_date ?? '—'}</td>
-                  <td style={{ padding: '8px 12px' }}>
+                  <td style={{ padding: '8px 12px' }}>{inc.effective_date.slice(0, 10)}</td>
+                  <td style={{ padding: '8px 12px' }}>{inc.end_date ? inc.end_date.slice(0, 10) : '—'}</td>
+                  <td style={{ padding: '8px 12px', display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => handleEdit(inc)}
+                      style={{ background: 'none', border: 'none', color: '#89b4fa', cursor: 'pointer', fontSize: 13 }}
+                    >
+                      Edit
+                    </button>
                     <button
                       onClick={() => deleteMutation.mutate(inc.id)}
                       style={{ background: 'none', border: 'none', color: '#f38ba8', cursor: 'pointer', fontSize: 13 }}

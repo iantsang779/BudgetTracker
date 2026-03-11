@@ -2,10 +2,11 @@ import { useState } from 'react'
 import {
   useTransactions,
   useCreateTransaction,
+  useUpdateTransaction,
   useDeleteTransaction,
 } from '../hooks/useTransactions'
 import { useCategories } from '../hooks/useCategories'
-import type { TransactionCreate, TransactionFilters } from '../types'
+import type { TransactionCreate, TransactionFilters, TransactionRead } from '../types'
 
 const today = new Date().toISOString().slice(0, 10)
 
@@ -34,24 +35,52 @@ export default function TransactionsPage() {
   const [filters, setFilters] = useState<TransactionFilters>({})
   const [form, setForm] = useState<TransactionCreate>(defaultForm)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   const { data: transactions, isLoading } = useTransactions(filters)
   const { data: expenseCategories } = useCategories(false)
   const createMutation = useCreateTransaction()
+  const updateMutation = useUpdateTransaction()
   const deleteMutation = useDeleteTransaction()
 
   function handleFilterChange(key: keyof TransactionFilters, value: string) {
     setFilters((prev) => ({ ...prev, [key]: value || undefined }))
   }
 
+  function handleEdit(t: TransactionRead) {
+    setForm({
+      account_id: t.account_id,
+      category_id: t.category_id,
+      amount_local: t.amount_local,
+      currency_code: t.currency_code,
+      amount_base: t.amount_base,
+      description: t.description ?? '',
+      merchant: t.merchant ?? '',
+      transaction_date: t.transaction_date.slice(0, 10),
+      source: t.source,
+    })
+    setEditingId(t.id)
+    setShowForm(true)
+  }
+
+  function handleCancel() {
+    setForm(defaultForm)
+    setEditingId(null)
+    setShowForm(false)
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    createMutation.mutate(form, {
-      onSuccess: () => {
-        setForm(defaultForm)
-        setShowForm(false)
-      },
-    })
+    if (editingId !== null) {
+      updateMutation.mutate({ id: editingId, data: form }, { onSuccess: handleCancel })
+    } else {
+      createMutation.mutate(form, {
+        onSuccess: () => {
+          setForm(defaultForm)
+          setShowForm(false)
+        },
+      })
+    }
   }
 
   return (
@@ -59,7 +88,7 @@ export default function TransactionsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Transactions</h1>
         <button
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => (showForm && editingId === null ? handleCancel() : setShowForm((v) => !v))}
           style={{ ...inputStyle, cursor: 'pointer', background: '#cba6f7', color: '#1e1e2e', fontWeight: 600, border: 'none' }}
         >
           {showForm ? 'Cancel' : '+ New Transaction'}
@@ -122,8 +151,13 @@ export default function TransactionsPage() {
             value={form.transaction_date}
             onChange={(e) => setForm({ ...form, transaction_date: e.target.value })} />
           <button type="submit" style={{ ...inputStyle, background: '#a6e3a1', color: '#1e1e2e', fontWeight: 600, cursor: 'pointer', border: 'none' }}>
-            Save
+            {editingId !== null ? 'Save Changes' : 'Save'}
           </button>
+          {editingId !== null && (
+            <button type="button" onClick={handleCancel} style={{ ...inputStyle, cursor: 'pointer', border: 'none' }}>
+              Cancel
+            </button>
+          )}
         </form>
       )}
 
@@ -148,8 +182,8 @@ export default function TransactionsPage() {
             </thead>
             <tbody>
               {transactions.map((t) => (
-                <tr key={t.id} style={{ borderBottom: '1px solid #313244' }}>
-                  <td style={{ padding: '8px 12px' }}>{t.transaction_date}</td>
+                <tr key={t.id} style={{ borderBottom: '1px solid #313244', background: editingId === t.id ? '#1e1e2e' : 'transparent' }}>
+                  <td style={{ padding: '8px 12px' }}>{t.transaction_date.slice(0, 10)}</td>
                   <td style={{ padding: '8px 12px' }}>{t.merchant ?? '—'}</td>
                   <td style={{ padding: '8px 12px' }}>{t.description ?? '—'}</td>
                   <td style={{ padding: '8px 12px' }}>{t.amount_local.toLocaleString()}</td>
@@ -159,7 +193,13 @@ export default function TransactionsPage() {
                       ? (expenseCategories?.find((c) => c.id === t.category_id)?.name ?? t.category_id)
                       : '—'}
                   </td>
-                  <td style={{ padding: '8px 12px' }}>
+                  <td style={{ padding: '8px 12px', display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => handleEdit(t)}
+                      style={{ background: 'none', border: 'none', color: '#89b4fa', cursor: 'pointer', fontSize: 13 }}
+                    >
+                      Edit
+                    </button>
                     <button
                       onClick={() => deleteMutation.mutate(t.id)}
                       style={{ background: 'none', border: 'none', color: '#f38ba8', cursor: 'pointer', fontSize: 13 }}

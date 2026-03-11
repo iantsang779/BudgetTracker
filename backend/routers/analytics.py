@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_db
 from backend.schemas.analytics import (
+    CumulativeSpendingResponse,
     MetricsResponse,
-    SavingsProjectionResponse,
     SpendingByCategoryResponse,
     SpendingOverTimeResponse,
 )
@@ -45,13 +45,13 @@ async def get_metrics(db: AsyncSession = Depends(get_db)) -> MetricsResponse:
     return await AnalyticsService(db).get_metrics()
 
 
-@router.get("/savings-projection", response_model=SavingsProjectionResponse)
-async def savings_projection(
-    months_ahead: int = 6,
+@router.get("/spending-cumulative", response_model=CumulativeSpendingResponse)
+async def spending_cumulative(
+    year: int | None = None,
     db: AsyncSession = Depends(get_db),
-) -> SavingsProjectionResponse:
-    """Return historical spending with a regression-based forward projection."""
-    return await AnalyticsService(db).get_savings_projection(months_ahead)
+) -> CumulativeSpendingResponse:
+    """Return cumulative spending for a calendar year (defaults to current year)."""
+    return await AnalyticsService(db).get_cumulative_spending(year)
 
 
 @router.get("/spending-by-category", response_model=SpendingByCategoryResponse)

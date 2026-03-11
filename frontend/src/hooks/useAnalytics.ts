@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import {
+  getCumulativeSpending,
   getMetrics,
-  getSavingsProjection,
   getSpendingByCategory,
   getSpendingOverTime,
 } from '../api/analytics'
@@ -14,10 +14,10 @@ export function useMetrics() {
   })
 }
 
-export function useSavingsProjection(months?: number) {
+export function useCumulativeSpending(year?: number) {
   return useQuery({
-    queryKey: ['savings-projection', months],
-    queryFn: () => getSavingsProjection(months),
+    queryKey: ['spending-cumulative', year],
+    queryFn: () => getCumulativeSpending(year),
   })
 }
 

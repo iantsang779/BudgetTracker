@@ -1,10 +1,9 @@
-import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useWebSocket } from '../hooks/useWebSocket'
-import { useMetrics, useSavingsProjection, useSpendingByCategory, useSpendingOverTime } from '../hooks/useAnalytics'
+import { useMetrics, useCumulativeSpending, useSpendingByCategory, useSpendingOverTime } from '../hooks/useAnalytics'
 import { useIncomeSummary } from '../hooks/useIncome'
 import MetricsDashboard from '../components/metrics/MetricsDashboard'
-import SavingsProjectionChart from '../components/charts/SavingsProjectionChart'
+import CumulativeSpendingChart from '../components/charts/CumulativeSpendingChart'
 import SpendingByCategoryChart from '../components/charts/SpendingByCategoryChart'
 import SpendingTrendChart from '../components/charts/SpendingTrendChart'
 
@@ -57,11 +56,9 @@ export default function DashboardPage() {
   const queryClient = useQueryClient()
   useWebSocket(queryClient)
 
-  const [months, setMonths] = useState(6)
-
   const { data: metrics, isLoading: metricsLoading } = useMetrics()
   const { data: summary, isLoading: summaryLoading } = useIncomeSummary()
-  const { data: projection, isLoading: projectionLoading } = useSavingsProjection(months)
+  const { data: cumulative, isLoading: cumulativeLoading } = useCumulativeSpending()
   const { data: byCategory, isLoading: byCategoryLoading } = useSpendingByCategory()
   const { data: overTime, isLoading: overTimeLoading } = useSpendingOverTime()
 
@@ -106,26 +103,15 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Savings Projection Chart */}
+      {/* Cumulative Spending Chart */}
       <section>
-        <h2 style={sectionHeading}>Savings Projection</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-          <label style={{ color: '#6c7086', fontSize: 12 }}>Months ahead: {months}</label>
-          <input
-            type="range"
-            min={1}
-            max={24}
-            value={months}
-            onChange={e => setMonths(Number(e.target.value))}
-            style={{ accentColor: '#cba6f7', width: 160 }}
-          />
-        </div>
-        {projectionLoading ? (
-          <p style={{ color: '#6c7086' }}>Loading projection…</p>
-        ) : projection && projection.points.length > 0 ? (
-          <SavingsProjectionChart data={projection} />
+        <h2 style={sectionHeading}>Cumulative Spending</h2>
+        {cumulativeLoading ? (
+          <p style={{ color: '#6c7086' }}>Loading…</p>
+        ) : cumulative && cumulative.points.length > 0 ? (
+          <CumulativeSpendingChart data={cumulative} />
         ) : (
-          <div style={emptyState}>No projection data yet — add transactions to generate forecasts.</div>
+          <div style={emptyState}>No spending data yet — add transactions to see cumulative totals.</div>
         )}
       </section>
 

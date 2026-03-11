@@ -43,10 +43,6 @@ export default function MetricsDashboard({ metrics }: Props) {
         <div style={cardValue}>${fmt(metrics.total_spending_base)}</div>
       </div>
       <div style={card}>
-        <div style={cardLabel}>Predicted Monthly</div>
-        <div style={cardValue}>${fmt(metrics.predicted_monthly_base)}</div>
-      </div>
-      <div style={card}>
         <div style={cardLabel}>Savings Rate</div>
         <div style={{ ...cardValue, color: metrics.savings_rate >= 0 ? '#a6e3a1' : '#f38ba8' }}>
           {pct(metrics.savings_rate)}
@@ -59,14 +55,6 @@ export default function MetricsDashboard({ metrics }: Props) {
       <div style={card}>
         <div style={cardLabel}>Monthly Income</div>
         <div style={cardValue}>${fmt(metrics.monthly_income_base)}</div>
-      </div>
-      <div style={card}>
-        <div style={cardLabel}>Regression Slope</div>
-        <div style={cardValue}>{fmt(metrics.regression_slope)}</div>
-      </div>
-      <div style={card}>
-        <div style={cardLabel}>R²</div>
-        <div style={cardValue}>{fmt(metrics.regression_r2, 3)}</div>
       </div>
     </div>
   )

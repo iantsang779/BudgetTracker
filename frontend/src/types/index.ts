@@ -148,27 +148,20 @@ export interface IncomeSummary {
 
 export interface MetricsResponse {
   total_spending_base: number
-  predicted_monthly_base: number
   savings_rate: number
   inflation_adjusted_spending: number
   monthly_income_base: number
-  regression_slope: number
-  regression_r2: number
 }
 
-export interface ProjectionPoint {
+export interface CumulativePoint {
   period: string
-  actual: number | null
-  predicted: number
-  upper_band: number
-  lower_band: number
+  monthly_total: number
+  cumulative_total: number
 }
 
-export interface SavingsProjectionResponse {
-  points: ProjectionPoint[]
-  slope: number
-  r2_score: number
-  error_std: number
+export interface CumulativeSpendingResponse {
+  points: CumulativePoint[]
+  year: number
 }
 
 export interface CategorySpending {
