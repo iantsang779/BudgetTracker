@@ -101,7 +101,7 @@ export interface TransactionFilters {
 
 // ── Income ────────────────────────────────────────────────────────────────────
 
-export type Recurrence = 'monthly' | 'yearly' | 'one_off'
+export type Recurrence = 'weekly' | 'monthly' | 'yearly'
 
 export interface IncomeCreate {
   account_id: number

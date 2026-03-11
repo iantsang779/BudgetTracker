@@ -15,6 +15,9 @@ const defaultForm: IncomeCreate = {
   end_date: null,
 }
 
+// Fields shown to user: amount, currency, recurrence, date, description
+// account_id hardcoded; amount_base mirrors amount_local
+
 const inputStyle: React.CSSProperties = {
   background: '#313244',
   border: '1px solid #45475a',
@@ -49,10 +52,10 @@ export default function IncomePage() {
       amount_local: inc.amount_local,
       currency_code: inc.currency_code,
       amount_base: inc.amount_base,
-      recurrence: inc.recurrence,
+      recurrence: inc.recurrence as Recurrence,
       description: inc.description ?? '',
       effective_date: inc.effective_date.slice(0, 10),
-      end_date: inc.end_date ? inc.end_date.slice(0, 10) : null,
+      end_date: null,
     })
     setEditingId(inc.id)
     setShowForm(true)
@@ -114,40 +117,31 @@ export default function IncomePage() {
           onSubmit={handleSubmit}
           style={{ display: 'flex', flexWrap: 'wrap', gap: 10, background: '#181825', padding: 16, borderRadius: 10, border: '1px solid #313244' }}
         >
-          <input style={inputStyle} type="number" placeholder="Account ID" required
-            value={form.account_id}
-            onChange={(e) => setForm({ ...form, account_id: Number(e.target.value) })} />
-          <input style={inputStyle} type="number" step="0.01" placeholder="Amount (local)" required
-            value={form.amount_local}
-            onChange={(e) => setForm({ ...form, amount_local: Number(e.target.value) })} />
+          <input style={inputStyle} type="number" step="0.01" placeholder="Amount" required
+            value={form.amount_local || ''}
+            onChange={(e) => {
+              const val = Number(e.target.value)
+              setForm({ ...form, amount_local: val, amount_base: val })
+            }} />
           <input style={inputStyle} placeholder="Currency" required
             value={form.currency_code}
-            onChange={(e) => setForm({ ...form, currency_code: e.target.value })} />
-          <input style={inputStyle} type="number" step="0.01" placeholder="Amount (USD base)" required
-            value={form.amount_base}
-            onChange={(e) => setForm({ ...form, amount_base: Number(e.target.value) })} />
+            onChange={(e) => setForm({ ...form, currency_code: e.target.value.toUpperCase() })} />
           <select style={inputStyle}
             value={form.recurrence}
             onChange={(e) => setForm({ ...form, recurrence: e.target.value as Recurrence })}>
+            <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
             <option value="yearly">Yearly</option>
-            <option value="one_off">One-off</option>
           </select>
-          <input style={inputStyle} placeholder="Description"
-            value={form.description ?? ''}
-            onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <label style={{ fontSize: 11, color: '#6c7086' }}>Effective Date</label>
+            <label style={{ fontSize: 11, color: '#6c7086' }}>Date</label>
             <input style={inputStyle} type="date" required
               value={form.effective_date}
               onChange={(e) => setForm({ ...form, effective_date: e.target.value })} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <label style={{ fontSize: 11, color: '#6c7086' }}>End Date (optional)</label>
-            <input style={inputStyle} type="date"
-              value={form.end_date ?? ''}
-              onChange={(e) => setForm({ ...form, end_date: e.target.value || null })} />
-          </div>
+          <input style={inputStyle} placeholder="Description"
+            value={form.description ?? ''}
+            onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <button type="submit" style={{ ...inputStyle, background: '#a6e3a1', color: '#1e1e2e', fontWeight: 600, cursor: 'pointer', border: 'none' }}>
             {editingId !== null ? 'Save Changes' : 'Save'}
           </button>

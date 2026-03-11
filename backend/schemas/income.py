@@ -15,7 +15,7 @@ class IncomeCreate(BaseModel):
     amount_local: float = Field(gt=0)
     currency_code: str = "USD"
     amount_base: float = Field(gt=0)
-    recurrence: Literal["monthly", "yearly", "one_off"] = "monthly"
+    recurrence: Literal["weekly", "monthly", "yearly"] = "monthly"
     description: str = ""
     effective_date: datetime
     end_date: datetime | None = None

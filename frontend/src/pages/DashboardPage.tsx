@@ -5,6 +5,7 @@ import { useIncomeSummary } from '../hooks/useIncome'
 import MetricsDashboard from '../components/metrics/MetricsDashboard'
 import CumulativeSpendingChart from '../components/charts/CumulativeSpendingChart'
 import SpendingByCategoryChart from '../components/charts/SpendingByCategoryChart'
+import SavingsChart from '../components/charts/SavingsChart'
 import SpendingTrendChart from '../components/charts/SpendingTrendChart'
 
 const card: React.CSSProperties = {
@@ -115,16 +116,30 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Spending by Category Chart */}
+      {/* Spending by Category + Savings side by side */}
       <section>
-        <h2 style={sectionHeading}>Spending by Category</h2>
-        {byCategoryLoading ? (
-          <p style={{ color: '#6c7086' }}>Loading…</p>
-        ) : byCategory && byCategory.items.length > 0 ? (
-          <SpendingByCategoryChart data={byCategory} />
-        ) : (
-          <div style={emptyState}>No category data yet — add transactions to see the breakdown.</div>
-        )}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div>
+            <h2 style={sectionHeading}>Spending by Category</h2>
+            {byCategoryLoading ? (
+              <p style={{ color: '#6c7086' }}>Loading…</p>
+            ) : byCategory && byCategory.items.length > 0 ? (
+              <SpendingByCategoryChart data={byCategory} />
+            ) : (
+              <div style={emptyState}>No category data yet — add transactions to see the breakdown.</div>
+            )}
+          </div>
+          <div>
+            <h2 style={sectionHeading}>Savings Breakdown</h2>
+            {metricsLoading ? (
+              <p style={{ color: '#6c7086' }}>Loading…</p>
+            ) : metrics ? (
+              <SavingsChart metrics={metrics} />
+            ) : (
+              <div style={emptyState}>No data yet — add income and transactions to see savings.</div>
+            )}
+          </div>
+        </div>
       </section>
 
       {/* Spending Over Time Chart */}

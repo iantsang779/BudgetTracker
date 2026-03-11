@@ -19,10 +19,12 @@ const darkLayout: Partial<Layout> = {
 export default function SpendingTrendChart({ data }: Props) {
   const traces: Plotly.Data[] = [
     {
-      type: 'bar',
+      type: 'scatter',
+      mode: 'lines+markers',
       x: data.points.map(p => p.period),
       y: data.points.map(p => p.total_base),
-      marker: { color: '#cba6f7' },
+      line: { color: '#cba6f7', width: 2 },
+      marker: { color: '#cba6f7', size: 6 },
       hovertemplate: '%{x}: $%{y:.2f}<extra></extra>',
     },
   ]
