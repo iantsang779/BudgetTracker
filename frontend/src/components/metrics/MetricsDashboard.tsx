@@ -49,10 +49,6 @@ export default function MetricsDashboard({ metrics }: Props) {
         </div>
       </div>
       <div style={card}>
-        <div style={cardLabel}>Inflation-Adjusted</div>
-        <div style={cardValue}>${fmt(metrics.inflation_adjusted_spending)}</div>
-      </div>
-      <div style={card}>
         <div style={cardLabel}>Monthly Income</div>
         <div style={cardValue}>${fmt(metrics.monthly_income_base)}</div>
       </div>

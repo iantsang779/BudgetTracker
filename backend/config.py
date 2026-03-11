@@ -15,7 +15,6 @@ class Settings(BaseSettings):
     debug: bool = False
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     exchangerate_api_key: str = ""
-    bls_api_key: str = ""
 
 
 settings = Settings()

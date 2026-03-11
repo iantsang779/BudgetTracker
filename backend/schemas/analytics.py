@@ -10,7 +10,6 @@ class MetricsResponse(BaseModel):
 
     total_spending_base: float
     savings_rate: float
-    inflation_adjusted_spending: float
     monthly_income_base: float
 
 

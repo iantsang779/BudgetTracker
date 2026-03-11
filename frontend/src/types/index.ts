@@ -149,7 +149,6 @@ export interface IncomeSummary {
 export interface MetricsResponse {
   total_spending_base: number
   savings_rate: number
-  inflation_adjusted_spending: number
   monthly_income_base: number
 }
 

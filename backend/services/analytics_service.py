@@ -21,7 +21,6 @@ from backend.schemas.analytics import (
     SpendingOverTimeResponse,
 )
 from backend.services.income_helpers import monthly_base
-from backend.services.inflation_service import InflationService
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +40,7 @@ class AnalyticsService:
         """Compute live KPI metrics.
 
         Returns:
-            MetricsResponse with spending totals, savings rate, and
-            inflation-adjusted current-month spending.
+            MetricsResponse with spending totals, savings rate, and monthly income.
         """
         # All-time total spending
         total_result = await self.session.execute(
@@ -77,15 +75,9 @@ class AnalyticsService:
             else 0.0
         )
 
-        # Inflation-adjusted current-month spending (real dollars vs. last year)
-        inflation_svc = InflationService(self.session)
-        inflation_rate = await inflation_svc.get_annual_rate()
-        inflation_adjusted = spending_current_month / (1.0 + inflation_rate)
-
         return MetricsResponse(
             total_spending_base=total_spending,
             savings_rate=savings_rate,
-            inflation_adjusted_spending=inflation_adjusted,
             monthly_income_base=monthly_income,
         )
 
