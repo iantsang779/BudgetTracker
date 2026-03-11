@@ -6,15 +6,18 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.config import settings
 from backend.models.currency_rate import CurrencyRate
 
 logger = logging.getLogger(__name__)
 
 RATE_TTL_HOURS = 24
-EXCHANGERATE_API_URL = "https://api.exchangerate-host.com/live"
+# exchangerate-api.com v6 endpoint — API key embedded in path.
+# Returns: {"result": "success", "base_code": "USD", "conversion_rates": {"GBP": 0.79, ...}}
+EXCHANGERATE_API_BASE = "https://v6.exchangerate-api.com/v6"
 
 
 class CurrencyService:
@@ -100,6 +103,7 @@ class CurrencyService:
             "MXN",
             "BRL",
         ]
+
         count = 0
         for target in targets:
             rate = await self._fetch_rate("USD", target)
@@ -109,8 +113,12 @@ class CurrencyService:
         return count
 
     async def _get_cached_rate(self, base_code: str, target_code: str) -> float | None:
-        """Return a cached rate if it's not stale."""
-        cutoff = datetime.now(UTC) - timedelta(hours=RATE_TTL_HOURS)
+        """Return a cached rate if it's not stale.
+
+        Comparison uses a naive UTC cutoff to match the naive datetimes stored
+        by SQLite when fetched_at is set as datetime.now(UTC).replace(tzinfo=None).
+        """
+        cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=RATE_TTL_HOURS)
         result = await self.session.execute(
             select(CurrencyRate)
             .where(
@@ -125,25 +133,62 @@ class CurrencyService:
         return cached.rate if cached is not None else None
 
     async def _fetch_rate(self, base_code: str, target_code: str) -> float | None:
-        """Fetch a live rate from the exchangerate.host API."""
+        """Fetch a live rate from the exchangerate-api.com v6 API.
+
+        The API returns: {"result": "success", "base_code": "<base>",
+        "conversion_rates": {"<target>": <rate>}}
+        API key is embedded in the URL path when EXCHANGERATE_API_KEY is configured.
+        """
+        if not settings.exchangerate_api_key:
+            logger.warning("EXCHANGERATE_API_KEY not set; cannot fetch live rates")
+            return None
+
+        url = f"{EXCHANGERATE_API_BASE}/{settings.exchangerate_api_key}/latest/{base_code}"
+
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get(
-                    EXCHANGERATE_API_URL,
-                    params={"source": base_code, "currencies": target_code},
-                )
+            async with httpx.AsyncClient(timeout=10.0) as http:
+                resp = await http.get(url)
                 resp.raise_for_status()
                 data = resp.json()
-                key = f"{base_code}{target_code}"
-                quotes = data.get("quotes", {})
-                if key in quotes:
-                    return float(quotes[key])
-        except Exception as e:
-            logger.warning("Failed to fetch currency rate: %s", e)
+                if data.get("result") != "success":
+                    logger.warning(
+                        "API error for %s->%s: %s", base_code, target_code, data.get("error-type")
+                    )
+                    return None
+                rates = data.get("conversion_rates", {})
+                if target_code in rates:
+                    return float(rates[target_code])
+                logger.warning(
+                    "Rate key %s not found in response for %s->%s",
+                    target_code,
+                    base_code,
+                    target_code,
+                )
+        except httpx.HTTPError as e:
+            logger.warning(
+                "HTTP error fetching currency rate %s->%s: %s", base_code, target_code, e
+            )
+        except (KeyError, TypeError, ValueError) as e:
+            logger.warning("Unexpected response format for %s->%s: %s", base_code, target_code, e)
         return None
 
     async def _cache_rate(self, base_code: str, target_code: str, rate: float) -> None:
-        """Insert a new rate record into the cache."""
-        obj = CurrencyRate(base_code=base_code, target_code=target_code, rate=rate)
+        """Upsert a rate record: remove stale entries then insert the fresh one.
+
+        Using application-set UTC datetime ensures timezone-aware comparisons
+        in _get_cached_rate work correctly regardless of DB server_default behaviour.
+        """
+        await self.session.execute(
+            delete(CurrencyRate).where(
+                CurrencyRate.base_code == base_code,
+                CurrencyRate.target_code == target_code,
+            )
+        )
+        obj = CurrencyRate(
+            base_code=base_code,
+            target_code=target_code,
+            rate=rate,
+            fetched_at=datetime.now(UTC).replace(tzinfo=None),
+        )
         self.session.add(obj)
         await self.session.flush()

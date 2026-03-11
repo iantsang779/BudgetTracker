@@ -19,7 +19,7 @@ Desktop-first personal budget tracker. Users log income/expenses, view live KPI 
 | Desktop | Electron (spawns FastAPI child process) |
 | Regression | scikit-learn `LinearRegression` |
 | Voice (desktop) | Web Speech API (Electron Chromium) |
-| Currency | exchangerate.host (free, no API key) |
+| Currency | exchangerate-api.com v6 (free tier, API key required) |
 | Inflation | BLS CPI API + embedded fallback JSON |
 
 ---
@@ -152,8 +152,10 @@ All monetary amounts stored as `REAL` in USD (`amount_base`) at write time; disp
 - Dead connections pruned silently on broadcast
 
 ### Currency Service (`backend/services/currency_service.py`)
-- Fetches from exchangerate.host; 24h TTL cache in `currency_rates` table
-- Falls back to rate=1.0 on API failure
+- Fetches from `https://v6.exchangerate-api.com/v6/{key}/latest/{base}`; 24h TTL cache in `currency_rates` table
+- Response format: `{"result": "success", "base_code": "USD", "conversion_rates": {...}}`
+- API key set via `EXCHANGERATE_API_KEY` in `.env`; returns 1.0 if key missing or API fails
+- `.env.example` committed; `.env` git-ignored
 
 ### Inflation Service (`backend/services/inflation_service.py`)
 - `get_annual_rate()`: user override → trailing 12-month CPI CAGR → 3.5% default

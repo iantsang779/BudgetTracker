@@ -4,6 +4,8 @@ import type { SpendingOverTimeResponse } from '../../types'
 
 interface Props {
   data: SpendingOverTimeResponse
+  rate: number
+  currency: string
 }
 
 const darkLayout: Partial<Layout> = {
@@ -16,23 +18,26 @@ const darkLayout: Partial<Layout> = {
   legend: { bgcolor: 'transparent' },
 }
 
-export default function SpendingTrendChart({ data }: Props) {
+export default function SpendingTrendChart({ data, rate, currency }: Props) {
   const traces: Plotly.Data[] = [
     {
       type: 'scatter',
       mode: 'lines+markers',
       x: data.points.map(p => p.period),
-      y: data.points.map(p => p.total_base),
+      y: data.points.map(p => p.total_base * rate),
       line: { color: '#cba6f7', width: 2 },
       marker: { color: '#cba6f7', size: 6 },
-      hovertemplate: '%{x}: $%{y:.2f}<extra></extra>',
+      hovertemplate: `%{x}: ${currency} %{y:,.2f}<extra></extra>`,
     },
   ]
 
   return (
     <Plot
       data={traces}
-      layout={darkLayout}
+      layout={{
+        ...darkLayout,
+        yaxis: { ...darkLayout.yaxis, tickprefix: `${currency} ` },
+      }}
       style={{ width: '100%', height: 320 }}
       useResizeHandler
       config={{ displayModeBar: false }}

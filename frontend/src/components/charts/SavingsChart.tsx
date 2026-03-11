@@ -4,6 +4,8 @@ import type { Layout } from 'plotly.js'
 interface Props {
   spending: number
   income: number
+  rate: number
+  currency: string
 }
 
 const darkLayout: Partial<Layout> = {
@@ -14,14 +16,14 @@ const darkLayout: Partial<Layout> = {
   legend: { bgcolor: 'transparent' },
 }
 
-export default function SavingsChart({ spending, income }: Props) {
-  const spendingVal = Math.max(0, spending)
-  const incomeVal = Math.max(0, income)
+export default function SavingsChart({ spending, income, rate, currency }: Props) {
+  const spendingVal = Math.max(0, spending * rate)
+  const incomeVal = Math.max(0, income * rate)
   const savings = Math.max(0, incomeVal - spendingVal)
 
   const centre = incomeVal > 0
-    ? `$${incomeVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-    : '$0'
+    ? `${currency} ${incomeVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+    : `${currency} 0`
 
   const traces: Plotly.Data[] = [
     {
@@ -31,7 +33,7 @@ export default function SavingsChart({ spending, income }: Props) {
       hole: 0.4,
       marker: { colors: ['#f38ba8', '#a6e3a1'] },
       textinfo: 'label+percent',
-      hovertemplate: '%{label}: $%{value:.2f} (%{percent})<extra></extra>',
+      hovertemplate: `%{label}: ${currency} %{value:,.2f} (%{percent})<extra></extra>`,
     },
   ]
 
@@ -45,7 +47,7 @@ export default function SavingsChart({ spending, income }: Props) {
         xanchor: 'center',
         yanchor: 'middle',
         showarrow: false,
-        font: { size: 16, color: '#cdd6f4' },
+        font: { size: 14, color: '#cdd6f4' },
       },
     ],
   }

@@ -6,6 +6,8 @@ import {
   useDeleteTransaction,
 } from '../hooks/useTransactions'
 import { useCategories } from '../hooks/useCategories'
+import { useCurrencyRate, fmtCurrency } from '../hooks/useCurrency'
+import useAppStore from '../store/useAppStore'
 import type { TransactionCreate, TransactionFilters, TransactionRead } from '../types'
 
 const today = new Date().toISOString().slice(0, 10)
@@ -36,6 +38,10 @@ export default function TransactionsPage() {
   const [form, setForm] = useState<TransactionCreate>(defaultForm)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
+
+  const displayCurrency = useAppStore((s) => s.displayCurrency)
+  const { data: rateData } = useCurrencyRate(displayCurrency)
+  const rate = displayCurrency === 'USD' ? 1 : (rateData?.rate ?? 1)
 
   const { data: transactions, isLoading } = useTransactions(filters)
   const { data: expenseCategories } = useCategories(false)
@@ -174,8 +180,7 @@ export default function TransactionsPage() {
                 <th style={{ padding: '8px 12px' }}>Date</th>
                 <th style={{ padding: '8px 12px' }}>Merchant</th>
                 <th style={{ padding: '8px 12px' }}>Description</th>
-                <th style={{ padding: '8px 12px' }}>Amount</th>
-                <th style={{ padding: '8px 12px' }}>Currency</th>
+                <th style={{ padding: '8px 12px' }}>Amount ({displayCurrency})</th>
                 <th style={{ padding: '8px 12px' }}>Category</th>
                 <th style={{ padding: '8px 12px' }}></th>
               </tr>
@@ -186,8 +191,7 @@ export default function TransactionsPage() {
                   <td style={{ padding: '8px 12px' }}>{t.transaction_date.slice(0, 10)}</td>
                   <td style={{ padding: '8px 12px' }}>{t.merchant ?? '—'}</td>
                   <td style={{ padding: '8px 12px' }}>{t.description ?? '—'}</td>
-                  <td style={{ padding: '8px 12px' }}>{t.amount_local.toLocaleString()}</td>
-                  <td style={{ padding: '8px 12px' }}>{t.currency_code}</td>
+                  <td style={{ padding: '8px 12px' }}>{fmtCurrency(t.amount_base * rate, displayCurrency)}</td>
                   <td style={{ padding: '8px 12px' }}>
                     {t.category_id
                       ? (expenseCategories?.find((c) => c.id === t.category_id)?.name ?? t.category_id)

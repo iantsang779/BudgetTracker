@@ -3,6 +3,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useMetrics, useCumulativeSpending, useSpendingByCategory, useSpendingOverTime } from '../hooks/useAnalytics'
 import { useIncomeSummary } from '../hooks/useIncome'
+import { useCurrencyRate, fmtCurrency } from '../hooks/useCurrency'
+import useAppStore from '../store/useAppStore'
 import MetricsDashboard from '../components/metrics/MetricsDashboard'
 import CumulativeSpendingChart from '../components/charts/CumulativeSpendingChart'
 import SpendingByCategoryChart from '../components/charts/SpendingByCategoryChart'
@@ -32,10 +34,6 @@ const cardValue: React.CSSProperties = {
   color: '#cdd6f4',
 }
 
-function fmt(n: number, decimals = 2): string {
-  return n.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
-}
-
 const sectionHeading: React.CSSProperties = {
   fontSize: 13,
   fontWeight: 600,
@@ -61,6 +59,10 @@ function currentYearMonth(): string {
 export default function DashboardPage() {
   const queryClient = useQueryClient()
   useWebSocket(queryClient)
+
+  const displayCurrency = useAppStore((s) => s.displayCurrency)
+  const { data: rateData } = useCurrencyRate(displayCurrency)
+  const rate = displayCurrency === 'USD' ? 1 : (rateData?.rate ?? 1)
 
   const { data: metrics, isLoading: metricsLoading } = useMetrics()
   const { data: summary, isLoading: summaryLoading } = useIncomeSummary()
@@ -95,7 +97,7 @@ export default function DashboardPage() {
         {metricsLoading ? (
           <p style={{ color: '#6c7086' }}>Loading metrics…</p>
         ) : metrics ? (
-          <MetricsDashboard metrics={metrics} />
+          <MetricsDashboard metrics={metrics} rate={rate} currency={displayCurrency} />
         ) : (
           <p style={{ color: '#6c7086' }}>No metrics available.</p>
         )}
@@ -110,11 +112,11 @@ export default function DashboardPage() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             <div style={card}>
               <div style={cardLabel}>Monthly Total</div>
-              <div style={cardValue}>${fmt(summary.monthly_total_base)}</div>
+              <div style={cardValue}>{fmtCurrency(summary.monthly_total_base * rate, displayCurrency)}</div>
             </div>
             <div style={card}>
               <div style={cardLabel}>Yearly Total</div>
-              <div style={cardValue}>${fmt(summary.yearly_total_base)}</div>
+              <div style={cardValue}>{fmtCurrency(summary.yearly_total_base * rate, displayCurrency)}</div>
             </div>
             <div style={card}>
               <div style={cardLabel}>Active Sources</div>
@@ -132,7 +134,7 @@ export default function DashboardPage() {
         {cumulativeLoading ? (
           <p style={{ color: '#6c7086' }}>Loading…</p>
         ) : cumulative && cumulative.points.length > 0 ? (
-          <CumulativeSpendingChart data={cumulative} />
+          <CumulativeSpendingChart data={cumulative} rate={rate} currency={displayCurrency} />
         ) : (
           <div style={emptyState}>No spending data yet — add transactions to see cumulative totals.</div>
         )}
@@ -166,7 +168,7 @@ export default function DashboardPage() {
             {byCategoryLoading ? (
               <p style={{ color: '#6c7086' }}>Loading…</p>
             ) : byCategory && byCategory.items.length > 0 ? (
-              <SpendingByCategoryChart data={byCategory} />
+              <SpendingByCategoryChart data={byCategory} rate={rate} currency={displayCurrency} />
             ) : (
               <div style={emptyState}>No spending for {selectedMonth}.</div>
             )}
@@ -179,6 +181,8 @@ export default function DashboardPage() {
               <SavingsChart
                 spending={byCategory?.total_base ?? 0}
                 income={metrics.monthly_income_base}
+                rate={rate}
+                currency={displayCurrency}
               />
             ) : (
               <div style={emptyState}>No data yet — add income and transactions to see savings.</div>
@@ -193,7 +197,7 @@ export default function DashboardPage() {
         {overTimeLoading ? (
           <p style={{ color: '#6c7086' }}>Loading…</p>
         ) : overTime && overTime.points.length > 0 ? (
-          <SpendingTrendChart data={overTime} />
+          <SpendingTrendChart data={overTime} rate={rate} currency={displayCurrency} />
         ) : (
           <div style={emptyState}>No historical data yet — add transactions to see monthly trends.</div>
         )}

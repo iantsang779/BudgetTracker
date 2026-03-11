@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useIncomes, useIncomeSummary, useCreateIncome, useUpdateIncome, useDeleteIncome } from '../hooks/useIncome'
+import { useCurrencyRate, fmtCurrency } from '../hooks/useCurrency'
+import useAppStore from '../store/useAppStore'
 import type { IncomeCreate, IncomeRead, Recurrence } from '../types'
 
 const today = new Date().toISOString().slice(0, 10)
@@ -39,6 +41,10 @@ export default function IncomePage() {
   const [form, setForm] = useState<IncomeCreate>(defaultForm)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
+
+  const displayCurrency = useAppStore((s) => s.displayCurrency)
+  const { data: rateData } = useCurrencyRate(displayCurrency)
+  const rate = displayCurrency === 'USD' ? 1 : (rateData?.rate ?? 1)
 
   const { data: incomes, isLoading } = useIncomes()
   const { data: summary } = useIncomeSummary()
@@ -98,11 +104,11 @@ export default function IncomePage() {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={card}>
             <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#6c7086', marginBottom: 6 }}>Monthly Total</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>${summary.monthly_total_base.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{fmtCurrency(summary.monthly_total_base * rate, displayCurrency)}</div>
           </div>
           <div style={card}>
             <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#6c7086', marginBottom: 6 }}>Yearly Total</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>${summary.yearly_total_base.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{fmtCurrency(summary.yearly_total_base * rate, displayCurrency)}</div>
           </div>
           <div style={card}>
             <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#6c7086', marginBottom: 6 }}>Active Sources</div>
@@ -164,8 +170,7 @@ export default function IncomePage() {
             <thead>
               <tr style={{ borderBottom: '1px solid #313244', textAlign: 'left', color: '#6c7086' }}>
                 <th style={{ padding: '8px 12px' }}>Description</th>
-                <th style={{ padding: '8px 12px' }}>Amount</th>
-                <th style={{ padding: '8px 12px' }}>Currency</th>
+                <th style={{ padding: '8px 12px' }}>Amount ({displayCurrency})</th>
                 <th style={{ padding: '8px 12px' }}>Recurrence</th>
                 <th style={{ padding: '8px 12px' }}>Effective Date</th>
                 <th style={{ padding: '8px 12px' }}>End Date</th>
@@ -176,8 +181,7 @@ export default function IncomePage() {
               {incomes.map((inc) => (
                 <tr key={inc.id} style={{ borderBottom: '1px solid #313244', background: editingId === inc.id ? '#1e1e2e' : 'transparent' }}>
                   <td style={{ padding: '8px 12px' }}>{inc.description ?? '—'}</td>
-                  <td style={{ padding: '8px 12px' }}>{inc.amount_local.toLocaleString()}</td>
-                  <td style={{ padding: '8px 12px' }}>{inc.currency_code}</td>
+                  <td style={{ padding: '8px 12px' }}>{fmtCurrency(inc.amount_base * rate, displayCurrency)}</td>
                   <td style={{ padding: '8px 12px' }}>{inc.recurrence}</td>
                   <td style={{ padding: '8px 12px' }}>{inc.effective_date.slice(0, 10)}</td>
                   <td style={{ padding: '8px 12px' }}>{inc.end_date ? inc.end_date.slice(0, 10) : '—'}</td>

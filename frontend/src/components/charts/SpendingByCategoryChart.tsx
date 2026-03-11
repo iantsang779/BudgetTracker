@@ -4,6 +4,8 @@ import type { SpendingByCategoryResponse } from '../../types'
 
 interface Props {
   data: SpendingByCategoryResponse
+  rate: number
+  currency: string
 }
 
 const darkLayout: Partial<Layout> = {
@@ -14,16 +16,18 @@ const darkLayout: Partial<Layout> = {
   legend: { bgcolor: 'transparent' },
 }
 
-export default function SpendingByCategoryChart({ data }: Props) {
+export default function SpendingByCategoryChart({ data, rate, currency }: Props) {
+  const total = data.total_base * rate
+
   const traces: Plotly.Data[] = [
     {
       type: 'pie',
       labels: data.items.map(i => i.category_name),
-      values: data.items.map(i => i.total_base),
+      values: data.items.map(i => i.total_base * rate),
       hole: 0.4,
       marker: { colors: data.items.map(i => i.color_hex) },
       textinfo: 'label+percent',
-      hovertemplate: '%{label}: $%{value:.2f} (%{percent})<extra></extra>',
+      hovertemplate: `%{label}: ${currency} %{value:,.2f} (%{percent})<extra></extra>`,
     },
   ]
 
@@ -31,13 +35,13 @@ export default function SpendingByCategoryChart({ data }: Props) {
     ...darkLayout,
     annotations: [
       {
-        text: `$${data.total_base.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+        text: `${currency} ${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
         x: 0.5,
         y: 0.5,
         xanchor: 'center',
         yanchor: 'middle',
         showarrow: false,
-        font: { size: 16, color: '#cdd6f4' },
+        font: { size: 14, color: '#cdd6f4' },
       },
     ],
   }

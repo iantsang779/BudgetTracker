@@ -1,7 +1,10 @@
 import type { MetricsResponse } from '../../types'
+import { fmtCurrency } from '../../hooks/useCurrency'
 
 interface Props {
   metrics: MetricsResponse
+  rate: number
+  currency: string
 }
 
 const card: React.CSSProperties = {
@@ -27,20 +30,16 @@ const cardValue: React.CSSProperties = {
   color: '#cdd6f4',
 }
 
-function fmt(n: number, decimals = 2): string {
-  return n.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
-}
-
 function pct(n: number): string {
-  return `${fmt(n * 100, 1)}%`
+  return `${(n * 100).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
 }
 
-export default function MetricsDashboard({ metrics }: Props) {
+export default function MetricsDashboard({ metrics, rate, currency }: Props) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
       <div style={card}>
         <div style={cardLabel}>Total Spending</div>
-        <div style={cardValue}>${fmt(metrics.total_spending_base)}</div>
+        <div style={cardValue}>{fmtCurrency(metrics.total_spending_base * rate, currency)}</div>
       </div>
       <div style={card}>
         <div style={cardLabel}>Savings Rate</div>
@@ -50,7 +49,7 @@ export default function MetricsDashboard({ metrics }: Props) {
       </div>
       <div style={card}>
         <div style={cardLabel}>Monthly Income</div>
-        <div style={cardValue}>${fmt(metrics.monthly_income_base)}</div>
+        <div style={cardValue}>{fmtCurrency(metrics.monthly_income_base * rate, currency)}</div>
       </div>
     </div>
   )
