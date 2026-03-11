@@ -7,6 +7,7 @@ import {
 } from '../hooks/useTransactions'
 import { useCategories } from '../hooks/useCategories'
 import { useCurrencyRate, fmtCurrency } from '../hooks/useCurrency'
+import { CURRENCIES } from '../constants/currencies'
 import useAppStore from '../store/useAppStore'
 import type { TransactionCreate, TransactionFilters, TransactionRead } from '../types'
 
@@ -134,9 +135,13 @@ export default function TransactionsPage() {
           <input style={inputStyle} type="number" step="0.01" placeholder="Amount (local)" required
             value={form.amount_local}
             onChange={(e) => setForm({ ...form, amount_local: Number(e.target.value), amount_base: Number(e.target.value) })} />
-          <input style={inputStyle} placeholder="Currency" required
+          <select style={inputStyle} required
             value={form.currency_code}
-            onChange={(e) => setForm({ ...form, currency_code: e.target.value })} />
+            onChange={(e) => setForm({ ...form, currency_code: e.target.value })}>
+            {CURRENCIES.map((code) => (
+              <option key={code} value={code}>{code}</option>
+            ))}
+          </select>
           <select
             style={inputStyle}
             value={form.category_id ?? ''}

@@ -31,24 +31,30 @@ _DEFAULT_EXPENSE_CATEGORIES = [
     {"name": "Shopping", "color_hex": "#94e2d5", "icon": "bag"},
     {"name": "Travel", "color_hex": "#89dceb", "icon": "plane"},
     {"name": "Education", "color_hex": "#b4befe", "icon": "book"},
+    {"name": "Tax", "color_hex": "#f2cdcd", "icon": "landmark"},
+    {"name": "Rent", "color_hex": "#cdd6f4", "icon": "house"},
+    {"name": "Investments", "color_hex": "#a6e3a1", "icon": "trending-up"},
     {"name": "Other", "color_hex": "#6c7086", "icon": "tag"},
 ]
 
 
 async def _seed_default_categories() -> None:
-    """Insert default expense categories if the table is empty."""
-    from sqlalchemy import func, select
+    """Insert default expense categories if they don't already exist."""
+    from sqlalchemy import select
 
     async for db in get_db():
         result = await db.execute(
-            select(func.count()).select_from(Category).where(Category.is_income.is_(False))
+            select(Category.name).where(Category.is_income.is_(False), Category.deleted_at.is_(None))
         )
-        count = result.scalar_one()
-        if count == 0:
-            for cat in _DEFAULT_EXPENSE_CATEGORIES:
+        existing_names = {row[0] for row in result.all()}
+        added = 0
+        for cat in _DEFAULT_EXPENSE_CATEGORIES:
+            if cat["name"] not in existing_names:
                 db.add(Category(is_income=False, **cat))
+                added += 1
+        if added:
             await db.commit()
-            logger.info("Seeded %d default expense categories", len(_DEFAULT_EXPENSE_CATEGORIES))
+            logger.info("Seeded %d default expense categories", added)
 
 
 @asynccontextmanager

@@ -6,6 +6,7 @@ export async function getRates(): Promise<CurrencyRateRead[]> {
   return res.data
 }
 
+
 export async function refreshRates(): Promise<{ refreshed: number }> {
   const res = await client.post<{ refreshed: number }>('/currency/rates/refresh')
   return res.data

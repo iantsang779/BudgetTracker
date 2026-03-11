@@ -197,14 +197,14 @@ export interface CurrencyRateRead {
 
 export interface ConvertRequest {
   amount: number
-  from_currency: string
-  to_currency: string
+  from_code: string
+  to_code: string
 }
 
 export interface ConvertResponse {
   amount: number
-  from_currency: string
-  to_currency: string
-  converted_amount: number
+  from_code: string
+  to_code: string
   rate: number
+  converted: number
 }

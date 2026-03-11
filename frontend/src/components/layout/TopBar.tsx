@@ -1,6 +1,5 @@
 import useAppStore from '../../store/useAppStore'
-
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY']
+import { CURRENCIES } from '../../constants/currencies'
 
 const styles: Record<string, React.CSSProperties> = {
   topbar: {
