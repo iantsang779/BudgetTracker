@@ -219,7 +219,11 @@ async def test_savings_cumulative_empty(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_savings_cumulative_positive_savings(client: AsyncClient) -> None:
-    """Income 1000/month, spending 400 → monthly saving 600, cumulative 600."""
+    """Income 1000/month from Jan 2026, spending 400 in Jan.
+
+    Jan has spending; subsequent months (up to current) are included because
+    income is still active even with zero spending.
+    """
     acc_id = await _create_account(client)
     cat_id = await _create_category(client)
     await _create_income(client, acc_id, 1000.0, effective_date="2026-01-01T00:00:00")
@@ -229,7 +233,8 @@ async def test_savings_cumulative_positive_savings(client: AsyncClient) -> None:
     assert resp.status_code == 200
     data = resp.json()
     assert data["year"] == 2026
-    assert len(data["points"]) == 1
+    # At least January; subsequent months with active income are also included
+    assert len(data["points"]) >= 1
     pt = data["points"][0]
     assert pt["period"] == "2026-01"
     assert pt["monthly_income"] == pytest.approx(1000.0)
@@ -240,7 +245,11 @@ async def test_savings_cumulative_positive_savings(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_savings_cumulative_accumulates_across_months(client: AsyncClient) -> None:
-    """Running cumulative saving adds up correctly across multiple months."""
+    """Running cumulative saving adds up correctly across multiple months.
+
+    Income-only months (no spending) after Feb are also included because
+    the income entry is still active.
+    """
     acc_id = await _create_account(client)
     cat_id = await _create_category(client)
     await _create_income(client, acc_id, 1000.0, effective_date="2026-01-01T00:00:00")
@@ -250,11 +259,14 @@ async def test_savings_cumulative_accumulates_across_months(client: AsyncClient)
     resp = await client.get("/api/v1/analytics/savings-cumulative?year=2026")
     assert resp.status_code == 200
     pts = resp.json()["points"]
-    assert len(pts) == 2
+    # At least Jan + Feb; subsequent income-only months also included
+    assert len(pts) >= 2
     # Jan: income 1000 - spending 300 = saving 700, cumulative 700
+    assert pts[0]["period"] == "2026-01"
     assert pts[0]["monthly_saving"] == pytest.approx(700.0)
     assert pts[0]["cumulative_saving"] == pytest.approx(700.0)
     # Feb: income 1000 - spending 500 = saving 500, cumulative 1200
+    assert pts[1]["period"] == "2026-02"
     assert pts[1]["monthly_saving"] == pytest.approx(500.0)
     assert pts[1]["cumulative_saving"] == pytest.approx(1200.0)
 
@@ -263,7 +275,11 @@ async def test_savings_cumulative_accumulates_across_months(client: AsyncClient)
 async def test_savings_cumulative_year_filter_excludes_other_years(
     client: AsyncClient,
 ) -> None:
-    """Transactions from a different year are excluded when year= is specified."""
+    """Transactions from a different year are excluded when year= is specified.
+
+    The income entry started in 2025 but is still active in 2026, so all
+    months in 2026 up to the current month are included.
+    """
     acc_id = await _create_account(client)
     cat_id = await _create_category(client)
     await _create_income(client, acc_id, 1000.0, effective_date="2025-01-01T00:00:00")
@@ -273,8 +289,9 @@ async def test_savings_cumulative_year_filter_excludes_other_years(
     resp = await client.get("/api/v1/analytics/savings-cumulative?year=2026")
     assert resp.status_code == 200
     pts = resp.json()["points"]
-    # Only the 2026 transaction appears
-    assert len(pts) == 1
+    # No 2025 periods in the result
+    assert all(p["period"].startswith("2026-") for p in pts)
+    # The first point is January 2026 with the correct spending
     assert pts[0]["period"] == "2026-01"
     assert pts[0]["monthly_spending"] == pytest.approx(300.0)
 
@@ -283,7 +300,12 @@ async def test_savings_cumulative_year_filter_excludes_other_years(
 async def test_savings_cumulative_income_not_yet_active_excluded(
     client: AsyncClient,
 ) -> None:
-    """Income whose effective_date is after the transaction month is not counted."""
+    """Income whose effective_date is after the transaction month is not counted.
+
+    January has spending but no active income (income starts March).
+    February has neither spending nor active income — excluded.
+    March has active income but no spending — included as an income-only month.
+    """
     acc_id = await _create_account(client)
     cat_id = await _create_category(client)
     # Income starts in March — should not count for January spending
@@ -293,6 +315,11 @@ async def test_savings_cumulative_income_not_yet_active_excluded(
     resp = await client.get("/api/v1/analytics/savings-cumulative?year=2026")
     assert resp.status_code == 200
     pts = resp.json()["points"]
-    assert len(pts) == 1
-    assert pts[0]["monthly_income"] == pytest.approx(0.0)
-    assert pts[0]["monthly_saving"] == pytest.approx(-100.0)
+    # Jan (spending only) and Mar (income active, zero spending) are included
+    jan = next(p for p in pts if p["period"] == "2026-01")
+    assert jan["monthly_income"] == pytest.approx(0.0)
+    assert jan["monthly_saving"] == pytest.approx(-100.0)
+    # March is also present with income active
+    mar = next(p for p in pts if p["period"] == "2026-03")
+    assert mar["monthly_income"] == pytest.approx(2000.0)
+    assert mar["monthly_spending"] == pytest.approx(0.0)

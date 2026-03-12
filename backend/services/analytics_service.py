@@ -164,9 +164,33 @@ class AnalyticsService:
         )
         all_income = list(income_result.scalars().all())
 
+        # Build the union of spending months and months where income is active,
+        # capped at the current month to exclude future months with no data.
+        now = datetime.now(UTC)
+        current_period = f"{now.year}-{now.month:02d}"
+        income_active_months: set[str] = set()
+        for mo in range(1, 13):
+            period = f"{target_year}-{mo:02d}"
+            if period > current_period:
+                break
+            mo_start = datetime(target_year, mo, 1)
+            mo_end = (
+                datetime(target_year, mo + 1, 1) - timedelta(seconds=1)
+                if mo < 12
+                else datetime(target_year, 12, 31, 23, 59, 59)
+            )
+            for e in all_income:
+                if e.effective_date.replace(tzinfo=None) <= mo_end and (
+                    e.end_date is None or e.end_date.replace(tzinfo=None) >= mo_start
+                ):
+                    income_active_months.add(period)
+                    break
+
+        all_periods = sorted(set(spending_by_month.keys()) | income_active_months)
+
         points: list[CumulativeSavingsPoint] = []
         running_total = 0.0
-        for period in sorted(spending_by_month):
+        for period in all_periods:
             yr, mo = int(period[:4]), int(period[5:7])
             month_start = datetime(yr, mo, 1)
             if mo < 12:
@@ -180,7 +204,7 @@ class AnalyticsService:
                 if e.effective_date.replace(tzinfo=None) <= month_end
                 and (e.end_date is None or e.end_date.replace(tzinfo=None) >= month_start)
             )
-            monthly_spending = spending_by_month[period]
+            monthly_spending = spending_by_month.get(period, 0.0)
             monthly_saving = monthly_income - monthly_spending
             running_total += monthly_saving
             points.append(

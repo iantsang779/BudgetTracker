@@ -9,7 +9,10 @@ interface Props {
 
 export default function MonthlySpendingChart({ data, rate, currency }: Props) {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const labels = data.points.map((p) => months[parseInt(p.period.split('-')[1], 10) - 1])
+  const labels = data.points.map((p) => {
+    const [yr, mo] = p.period.split('-')
+    return `${months[parseInt(mo, 10) - 1]} '${yr.slice(2)}`
+  })
   const monthly = data.points.map((p) => p.monthly_total * rate)
 
   return (

@@ -55,7 +55,6 @@ export interface TransactionCreate {
   category_id?: number | null
   amount_local: number
   currency_code: string
-  amount_base: number
   description?: string | null
   merchant?: string | null
   transaction_date: string
@@ -69,7 +68,6 @@ export interface TransactionUpdate {
   category_id?: number | null
   amount_local?: number
   currency_code?: string
-  amount_base?: number
   description?: string | null
   merchant?: string | null
   transaction_date?: string
@@ -111,7 +109,6 @@ export interface IncomeCreate {
   account_id: number
   amount_local: number
   currency_code: string
-  amount_base: number
   recurrence: Recurrence
   description?: string | null
   effective_date: string
@@ -122,7 +119,6 @@ export interface IncomeUpdate {
   account_id?: number
   amount_local?: number
   currency_code?: string
-  amount_base?: number
   recurrence?: Recurrence
   description?: string | null
   effective_date?: string

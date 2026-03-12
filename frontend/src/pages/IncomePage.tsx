@@ -11,7 +11,6 @@ const defaultForm: IncomeCreate = {
   account_id: 1,
   amount_local: 0,
   currency_code: 'GBP',
-  amount_base: 0,
   recurrence: 'monthly',
   description: '',
   effective_date: today,
@@ -80,7 +79,6 @@ export default function IncomePage() {
       account_id: inc.account_id,
       amount_local: inc.amount_local,
       currency_code: inc.currency_code,
-      amount_base: inc.amount_base,
       recurrence: inc.recurrence as Recurrence,
       description: inc.description ?? '',
       effective_date: inc.effective_date.slice(0, 10),
@@ -150,10 +148,7 @@ export default function IncomePage() {
         >
           <input style={inputStyle} type="number" step="0.01" placeholder="Amount" required
             value={form.amount_local || ''}
-            onChange={(e) => {
-              const val = Number(e.target.value)
-              setForm({ ...form, amount_local: val, amount_base: val })
-            }} />
+            onChange={(e) => setForm({ ...form, amount_local: Number(e.target.value) })} />
           <select style={inputStyle}
             value={form.currency_code}
             onChange={(e) => setForm({ ...form, currency_code: e.target.value })}>

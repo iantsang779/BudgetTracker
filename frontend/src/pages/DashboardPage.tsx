@@ -72,6 +72,7 @@ export default function DashboardPage() {
   const { data: cumulative, isLoading: cumulativeLoading } = useCumulativeSpending()
   const { data: savings, isLoading: savingsLoading } = useCumulativeSavings()
   const { data: overTime, isLoading: overTimeLoading } = useSpendingOverTime()
+  const isInitialLoading = metricsLoading || summaryLoading || cumulativeLoading || savingsLoading || overTimeLoading
 
   // Derive available months from spending-over-time, default to current month
   const availableMonths = useMemo(() => {
@@ -95,12 +96,14 @@ export default function DashboardPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#cdd6f4' }}>Dashboard</h1>
 
+      {isInitialLoading ? (
+        <p style={{ color: '#6c7086' }}>Loading dashboard…</p>
+      ) : <>
+
       {/* KPI cards */}
       <section>
         <h2 style={sectionHeading}>Key Metrics</h2>
-        {metricsLoading ? (
-          <p style={{ color: '#6c7086' }}>Loading metrics…</p>
-        ) : metrics ? (
+        {metrics ? (
           <MetricsDashboard metrics={metrics} rate={rate} currency={displayCurrency} />
         ) : (
           <p style={{ color: '#6c7086' }}>No metrics available.</p>
@@ -110,9 +113,7 @@ export default function DashboardPage() {
       {/* Income summary */}
       <section>
         <h2 style={sectionHeading}>Income Summary</h2>
-        {summaryLoading ? (
-          <p style={{ color: '#6c7086' }}>Loading income…</p>
-        ) : summary ? (
+        {summary ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             <div style={card}>
               <div style={cardLabel}>Monthly Total</div>
@@ -135,9 +136,7 @@ export default function DashboardPage() {
       {/* Monthly + Cumulative Spending Charts */}
       <section>
         <h2 style={sectionHeading}>Spending Overview</h2>
-        {cumulativeLoading ? (
-          <p style={{ color: '#6c7086' }}>Loading…</p>
-        ) : cumulative && cumulative.points.length > 0 ? (
+        {cumulative && cumulative.points.length > 0 ? (
           <div style={{ display: 'flex', gap: 16 }}>
             <div style={{ flex: 1 }}>
               <MonthlySpendingChart data={cumulative} rate={rate} currency={displayCurrency} />
@@ -186,9 +185,7 @@ export default function DashboardPage() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={sectionHeading}>Savings Breakdown</h2>
-            {metricsLoading ? (
-              <p style={{ color: '#6c7086' }}>Loading…</p>
-            ) : metrics ? (
+            {metrics ? (
               <SavingsChart
                 spending={byCategory?.total_base ?? 0}
                 income={metrics.monthly_income_base}
@@ -205,9 +202,7 @@ export default function DashboardPage() {
       {/* Savings Overview Charts */}
       <section>
         <h2 style={sectionHeading}>Savings Overview</h2>
-        {savingsLoading ? (
-          <p style={{ color: '#6c7086' }}>Loading…</p>
-        ) : savings && savings.points.length > 0 ? (
+        {savings && savings.points.length > 0 ? (
           <div style={{ display: 'flex', gap: 16 }}>
             <div style={{ flex: 1 }}>
               <MonthlySavingsChart data={savings} rate={rate} currency={displayCurrency} />
@@ -220,6 +215,7 @@ export default function DashboardPage() {
           <div style={emptyState}>No data yet — add income and transactions to see savings charts.</div>
         )}
       </section>
+      </>}
     </div>
   )
 }

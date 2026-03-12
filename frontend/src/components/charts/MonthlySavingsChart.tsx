@@ -9,7 +9,10 @@ interface Props {
 
 export default function MonthlySavingsChart({ data, rate, currency }: Props) {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const labels = data.points.map((p) => months[parseInt(p.period.split('-')[1], 10) - 1])
+  const labels = data.points.map((p) => {
+    const [yr, mo] = p.period.split('-')
+    return `${months[parseInt(mo, 10) - 1]} '${yr.slice(2)}`
+  })
   const savings = data.points.map((p) => p.monthly_saving * rate)
   const colors = savings.map((v) => (v >= 0 ? '#a6e3a1' : '#f38ba8'))
 

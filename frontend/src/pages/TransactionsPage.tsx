@@ -18,7 +18,6 @@ const defaultForm: TransactionCreate = {
   category_id: null,
   amount_local: 0,
   currency_code: 'GBP',
-  amount_base: 0,
   description: '',
   merchant: '',
   transaction_date: today,
@@ -90,7 +89,6 @@ export default function TransactionsPage() {
       category_id: t.category_id,
       amount_local: t.amount_local,
       currency_code: t.currency_code,
-      amount_base: t.amount_base,
       description: t.description ?? '',
       merchant: t.merchant ?? '',
       transaction_date: t.transaction_date.slice(0, 10),
@@ -169,7 +167,7 @@ export default function TransactionsPage() {
         >
           <input style={inputStyle} type="number" step="0.01" placeholder="Amount (local)" required
             value={form.amount_local}
-            onChange={(e) => setForm({ ...form, amount_local: Number(e.target.value), amount_base: Number(e.target.value) })} />
+            onChange={(e) => setForm({ ...form, amount_local: Number(e.target.value) })} />
           <select style={inputStyle} required
             value={form.currency_code}
             onChange={(e) => setForm({ ...form, currency_code: e.target.value })}>
