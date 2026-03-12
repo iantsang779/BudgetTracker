@@ -9,6 +9,7 @@ from backend.database import get_db
 from backend.repositories.income_repository import IncomeRepository
 from backend.routers.analytics import notify_clients
 from backend.schemas.income import IncomeCreate, IncomeRead, IncomeSummary, IncomeUpdate
+from backend.services.currency_service import CurrencyService
 from backend.services.income_helpers import monthly_base
 
 router = APIRouter(prefix="/income", tags=["income"])
@@ -27,9 +28,18 @@ async def create_income(
     payload: IncomeCreate,
     db: AsyncSession = Depends(get_db),
 ) -> IncomeRead:
-    """Create a new income entry."""
+    """Create a new income entry.
+
+    amount_base is always computed server-side by converting amount_local from
+    currency_code to USD, so clients must not set it.
+    """
+    _, amount_base = await CurrencyService(db).convert(
+        payload.amount_local, payload.currency_code, "USD"
+    )
+    data = payload.model_dump()
+    data["amount_base"] = amount_base
     repo = IncomeRepository(db)
-    entry = await repo.create(**payload.model_dump())
+    entry = await repo.create(**data)
     await notify_clients(db)
     return IncomeRead.model_validate(entry)
 
@@ -64,9 +74,22 @@ async def update_income(
     payload: IncomeUpdate,
     db: AsyncSession = Depends(get_db),
 ) -> IncomeRead:
-    """Update an income entry."""
+    """Update an income entry.
+
+    If amount_local or currency_code is being changed, amount_base is
+    recomputed server-side from the effective (possibly updated) values.
+    """
     repo = IncomeRepository(db)
-    entry = await repo.update(income_id, **payload.model_dump(exclude_none=True))
+    # Recompute amount_base when monetary fields change.
+    updates = payload.model_dump(exclude_none=True)
+    if "amount_local" in updates or "currency_code" in updates:
+        existing = await repo.get(income_id)
+        if existing is None:
+            raise HTTPException(status_code=404, detail="Income entry not found")
+        local = updates.get("amount_local", existing.amount_local)
+        code = updates.get("currency_code", existing.currency_code)
+        _, updates["amount_base"] = await CurrencyService(db).convert(local, code, "USD")
+    entry = await repo.update(income_id, **updates)
     if entry is None:
         raise HTTPException(status_code=404, detail="Income entry not found")
     await notify_clients(db)
