@@ -22,7 +22,7 @@ class IncomeEntry(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
     amount_local: Mapped[float] = mapped_column(Float, nullable=False)
-    currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
+    currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="GBP")
     amount_base: Mapped[float] = mapped_column(Float, nullable=False)  # USD
     recurrence: Mapped[str] = mapped_column(  # monthly | yearly | one_off
         String(20), nullable=False, default="monthly"

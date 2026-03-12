@@ -13,7 +13,7 @@ class IncomeCreate(BaseModel):
 
     account_id: int
     amount_local: float = Field(gt=0)
-    currency_code: str = "USD"
+    currency_code: str = "GBP"
     amount_base: float = Field(gt=0)
     recurrence: Literal["weekly", "monthly", "yearly"] = "monthly"
     description: str = ""

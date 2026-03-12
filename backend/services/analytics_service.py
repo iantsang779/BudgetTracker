@@ -3,17 +3,20 @@ from __future__ import annotations
 """Analytics service for KPI computation and spending charts."""
 
 import logging
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.category import Category
+from backend.models.income import IncomeEntry
 from backend.models.transaction import Transaction
 from backend.repositories.income_repository import IncomeRepository
 from backend.schemas.analytics import (
     CategorySpending,
     CumulativePoint,
+    CumulativeSavingsPoint,
+    CumulativeSavingsResponse,
     CumulativeSpendingResponse,
     MetricsResponse,
     SpendingByCategoryResponse,
@@ -124,6 +127,74 @@ class AnalyticsService:
             )
 
         return CumulativeSpendingResponse(points=points, year=target_year)
+
+    async def get_cumulative_savings(self, year: int | None = None) -> CumulativeSavingsResponse:
+        """Compute cumulative savings (income minus spending) for a calendar year.
+
+        For each month that has transaction data, calculates the income from
+        active entries and the net saving, then accumulates a running total.
+
+        Args:
+            year: Calendar year to aggregate. Defaults to the current year.
+
+        Returns:
+            CumulativeSavingsResponse with ordered points and the target year.
+        """
+        target_year = year if year is not None else datetime.now(UTC).year
+        year_prefix = str(target_year)
+
+        spend_result = await self.session.execute(
+            select(
+                func.strftime("%Y-%m", Transaction.transaction_date).label("period"),
+                func.sum(Transaction.amount_base).label("total"),
+            )
+            .where(
+                Transaction.deleted_at.is_(None),
+                func.strftime("%Y", Transaction.transaction_date) == year_prefix,
+            )
+            .group_by(func.strftime("%Y-%m", Transaction.transaction_date))
+            .order_by(func.strftime("%Y-%m", Transaction.transaction_date))
+        )
+        spending_by_month: dict[str, float] = {
+            str(row["period"]): float(row["total"] or 0)
+            for row in spend_result.mappings().all()
+        }
+
+        income_result = await self.session.execute(
+            select(IncomeEntry).where(IncomeEntry.deleted_at.is_(None))
+        )
+        all_income = list(income_result.scalars().all())
+
+        points: list[CumulativeSavingsPoint] = []
+        running_total = 0.0
+        for period in sorted(spending_by_month):
+            yr, mo = int(period[:4]), int(period[5:7])
+            month_start = datetime(yr, mo, 1)
+            if mo < 12:
+                month_end = datetime(yr, mo + 1, 1) - timedelta(seconds=1)
+            else:
+                month_end = datetime(yr, 12, 31, 23, 59, 59)
+
+            monthly_income: float = sum(
+                monthly_base(e.amount_base, e.recurrence)
+                for e in all_income
+                if e.effective_date <= month_end
+                and (e.end_date is None or e.end_date >= month_start)
+            )
+            monthly_spending = spending_by_month[period]
+            monthly_saving = monthly_income - monthly_spending
+            running_total += monthly_saving
+            points.append(
+                CumulativeSavingsPoint(
+                    period=period,
+                    monthly_income=monthly_income,
+                    monthly_spending=monthly_spending,
+                    monthly_saving=monthly_saving,
+                    cumulative_saving=running_total,
+                )
+            )
+
+        return CumulativeSavingsResponse(points=points, year=target_year)
 
     async def get_spending_by_category(
         self,

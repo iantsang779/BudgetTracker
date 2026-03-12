@@ -11,7 +11,7 @@ interface AppState {
 const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      displayCurrency: 'USD',
+      displayCurrency: 'GBP',
       sidebarOpen: true,
       setDisplayCurrency: (c) => set({ displayCurrency: c }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),

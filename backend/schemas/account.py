@@ -11,7 +11,7 @@ class AccountCreate(BaseModel):
     """Fields required to create an account."""
 
     name: str
-    currency_code: str = "USD"
+    currency_code: str = "GBP"
     balance_initial: float = Field(default=0.0, ge=0)
 
 

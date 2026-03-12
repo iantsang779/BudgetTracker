@@ -17,7 +17,7 @@ const defaultForm: TransactionCreate = {
   account_id: 1,
   category_id: null,
   amount_local: 0,
-  currency_code: 'USD',
+  currency_code: 'GBP',
   amount_base: 0,
   description: '',
   merchant: '',
@@ -158,12 +158,6 @@ export default function TransactionsPage() {
           placeholder="To"
           value={filters.date_to ?? ''}
           onChange={(e) => handleFilterChange('date_to', e.target.value)}
-        />
-        <input
-          style={inputStyle}
-          placeholder="Currency (e.g. USD)"
-          value={filters.currency_code ?? ''}
-          onChange={(e) => handleFilterChange('currency_code', e.target.value)}
         />
       </div>
 

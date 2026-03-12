@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useIncomes, useIncomeSummary, useCreateIncome, useUpdateIncome, useDeleteIncome } from '../hooks/useIncome'
 import { useCurrencyRate, fmtCurrency } from '../hooks/useCurrency'
 import useAppStore from '../store/useAppStore'
+import { CURRENCIES } from '../constants/currencies'
 import type { IncomeCreate, IncomeRead, Recurrence } from '../types'
 
 const today = new Date().toISOString().slice(0, 10)
@@ -9,7 +10,7 @@ const today = new Date().toISOString().slice(0, 10)
 const defaultForm: IncomeCreate = {
   account_id: 1,
   amount_local: 0,
-  currency_code: 'USD',
+  currency_code: 'GBP',
   amount_base: 0,
   recurrence: 'monthly',
   description: '',
@@ -153,9 +154,13 @@ export default function IncomePage() {
               const val = Number(e.target.value)
               setForm({ ...form, amount_local: val, amount_base: val })
             }} />
-          <input style={inputStyle} placeholder="Currency" required
+          <select style={inputStyle}
             value={form.currency_code}
-            onChange={(e) => setForm({ ...form, currency_code: e.target.value.toUpperCase() })} />
+            onChange={(e) => setForm({ ...form, currency_code: e.target.value })}>
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
           <select style={inputStyle}
             value={form.recurrence}
             onChange={(e) => setForm({ ...form, recurrence: e.target.value as Recurrence })}>

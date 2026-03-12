@@ -10,7 +10,7 @@ Each test group covers one table and checks:
   - Unique and soft-delete constraints behave as expected
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 import sqlalchemy as sa
@@ -21,7 +21,6 @@ from backend.models.category import Category
 from backend.models.currency_rate import CurrencyRate
 from backend.models.income import IncomeEntry
 from backend.models.transaction import Transaction
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -81,14 +80,14 @@ async def test_accounts_columns(db_session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_accounts_defaults(db_session: AsyncSession) -> None:
-    """Account ORM defaults: currency_code='USD', balance_initial=0.0."""
+    """Account ORM defaults: currency_code='GBP', balance_initial=0.0."""
     account = Account(name="Checking")
     db_session.add(account)
     await db_session.flush()
     await db_session.refresh(account)
 
     assert account.id is not None
-    assert account.currency_code == "USD"
+    assert account.currency_code == "GBP"
     assert account.balance_initial == 0.0
     assert account.deleted_at is None
     assert account.created_at is not None
@@ -101,7 +100,7 @@ async def test_accounts_soft_delete(db_session: AsyncSession) -> None:
     db_session.add(account)
     await db_session.flush()
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
     account.deleted_at = now
     await db_session.flush()
     await db_session.refresh(account)
@@ -188,7 +187,7 @@ async def test_transactions_foreign_keys(db_session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_transactions_defaults(db_session: AsyncSession) -> None:
-    """Transaction ORM defaults: source='manual', recurrence=None, currency_code='USD'."""
+    """Transaction ORM defaults: source='manual', recurrence=None, currency_code='GBP'."""
     account = Account(name="Bank")
     db_session.add(account)
     await db_session.flush()
@@ -205,7 +204,7 @@ async def test_transactions_defaults(db_session: AsyncSession) -> None:
 
     assert txn.id is not None
     assert txn.source == "manual"
-    assert txn.currency_code == "USD"
+    assert txn.currency_code == "GBP"
     assert txn.recurrence is None
     assert txn.category_id is None
     assert txn.voice_transcript is None
@@ -286,7 +285,7 @@ async def test_income_entries_foreign_keys(db_session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_income_entries_defaults(db_session: AsyncSession) -> None:
-    """IncomeEntry ORM defaults: recurrence='monthly', currency_code='USD'."""
+    """IncomeEntry ORM defaults: recurrence='monthly', currency_code='GBP'."""
     account = Account(name="Payroll")
     db_session.add(account)
     await db_session.flush()
@@ -302,7 +301,7 @@ async def test_income_entries_defaults(db_session: AsyncSession) -> None:
     await db_session.refresh(entry)
 
     assert entry.id is not None
-    assert entry.currency_code == "USD"
+    assert entry.currency_code == "GBP"
     assert entry.recurrence == "monthly"
     assert entry.end_date is None
     assert entry.deleted_at is None

@@ -24,7 +24,7 @@ class Transaction(Base):
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
     category_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
     amount_local: Mapped[float] = mapped_column(Float, nullable=False)
-    currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
+    currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="GBP")
     amount_base: Mapped[float] = mapped_column(Float, nullable=False)  # USD
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     merchant: Mapped[str] = mapped_column(String(200), nullable=False, default="")

@@ -56,3 +56,20 @@ class SpendingOverTimeResponse(BaseModel):
     """Monthly spending timeseries."""
 
     points: list[SpendingOverTimePoint]
+
+
+class CumulativeSavingsPoint(BaseModel):
+    """A single month's savings in the cumulative savings chart."""
+
+    period: str  # YYYY-MM
+    monthly_income: float
+    monthly_spending: float
+    monthly_saving: float
+    cumulative_saving: float
+
+
+class CumulativeSavingsResponse(BaseModel):
+    """Cumulative savings data for a given year."""
+
+    points: list[CumulativeSavingsPoint]
+    year: int

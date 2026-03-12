@@ -167,6 +167,19 @@ export interface CumulativeSpendingResponse {
   year: number
 }
 
+export interface CumulativeSavingsPoint {
+  period: string
+  monthly_income: number
+  monthly_spending: number
+  monthly_saving: number
+  cumulative_saving: number
+}
+
+export interface CumulativeSavingsResponse {
+  points: CumulativeSavingsPoint[]
+  year: number
+}
+
 export interface CategorySpending {
   category_id: number | null
   category_name: string

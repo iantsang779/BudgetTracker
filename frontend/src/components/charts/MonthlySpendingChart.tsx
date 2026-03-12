@@ -7,28 +7,25 @@ interface Props {
   currency: string
 }
 
-export default function CumulativeSpendingChart({ data, rate, currency }: Props) {
-  const periods = data.points.map((p) => p.period)
-  const cumulative = data.points.map((p) => p.cumulative_total * rate)
+export default function MonthlySpendingChart({ data, rate, currency }: Props) {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const labels = data.points.map((p) => months[parseInt(p.period.split('-')[1], 10) - 1])
+  const monthly = data.points.map((p) => p.monthly_total * rate)
 
   return (
     <Plot
       data={[
         {
-          x: periods,
-          y: cumulative,
-          type: 'scatter',
-          mode: 'lines+markers',
-          name: 'Cumulative',
-          line: { color: '#cba6f7', width: 2 },
-          marker: { color: '#cba6f7', size: 6 },
-          fill: 'tozeroy',
-          fillcolor: 'rgba(203,166,247,0.12)',
-          hovertemplate: `%{x}<br>Cumulative: ${currency} %{y:,.2f}<extra></extra>`,
+          x: labels,
+          y: monthly,
+          type: 'bar',
+          name: 'Monthly Spending',
+          marker: { color: '#89b4fa' },
+          hovertemplate: `%{x}<br>${currency} %{y:,.2f}<extra></extra>`,
         },
       ]}
       layout={{
-        title: { text: `Cumulative Spending — ${data.year}`, font: { color: '#cdd6f4', size: 14 } },
+        title: { text: `Monthly Spending — ${data.year}`, font: { color: '#cdd6f4', size: 14 } },
         paper_bgcolor: '#181825',
         plot_bgcolor: '#181825',
         font: { color: '#cdd6f4' },

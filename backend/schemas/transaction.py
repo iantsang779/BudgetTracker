@@ -14,7 +14,7 @@ class TransactionCreate(BaseModel):
     account_id: int
     category_id: int | None = None
     amount_local: float = Field(gt=0)
-    currency_code: str = "USD"
+    currency_code: str = "GBP"
     amount_base: float = Field(gt=0)
     description: str = ""
     merchant: str = ""

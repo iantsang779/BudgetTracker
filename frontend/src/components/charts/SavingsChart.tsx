@@ -8,13 +8,6 @@ interface Props {
   currency: string
 }
 
-const darkLayout: Partial<Layout> = {
-  paper_bgcolor: '#181825',
-  plot_bgcolor: '#181825',
-  font: { color: '#cdd6f4', family: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif' },
-  margin: { t: 30, r: 20, b: 20, l: 20 },
-  legend: { bgcolor: 'transparent' },
-}
 
 export default function SavingsChart({ spending, income, rate, currency }: Props) {
   const spendingVal = Math.max(0, spending * rate)
@@ -33,12 +26,18 @@ export default function SavingsChart({ spending, income, rate, currency }: Props
       hole: 0.4,
       marker: { colors: ['#f38ba8', '#a6e3a1'] },
       textinfo: 'label+percent',
+      textposition: 'outside',
       hovertemplate: `%{label}: ${currency} %{value:,.2f} (%{percent})<extra></extra>`,
     },
   ]
 
   const layout: Partial<Layout> = {
-    ...darkLayout,
+    paper_bgcolor: '#181825',
+    plot_bgcolor: '#181825',
+    font: { color: '#cdd6f4', family: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', size: 11 },
+    margin: { t: 40, r: 80, b: 40, l: 80 },
+    autosize: true,
+    showlegend: false,
     annotations: [
       {
         text: centre,
@@ -47,7 +46,7 @@ export default function SavingsChart({ spending, income, rate, currency }: Props
         xanchor: 'center',
         yanchor: 'middle',
         showarrow: false,
-        font: { size: 14, color: '#cdd6f4' },
+        font: { size: 13, color: '#cdd6f4' },
       },
     ],
   }
@@ -56,9 +55,9 @@ export default function SavingsChart({ spending, income, rate, currency }: Props
     <Plot
       data={traces}
       layout={layout}
-      style={{ width: '100%', height: 320 }}
+      style={{ width: '100%', height: 300 }}
       useResizeHandler
-      config={{ displayModeBar: false }}
+      config={{ displayModeBar: false, responsive: true }}
     />
   )
 }

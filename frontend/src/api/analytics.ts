@@ -1,5 +1,6 @@
 import client from './client'
 import type {
+  CumulativeSavingsResponse,
   CumulativeSpendingResponse,
   MetricsResponse,
   SpendingByCategoryResponse,
@@ -30,5 +31,12 @@ export async function getSpendingByCategory(
 
 export async function getSpendingOverTime(): Promise<SpendingOverTimeResponse> {
   const res = await client.get<SpendingOverTimeResponse>('/analytics/spending-over-time')
+  return res.data
+}
+
+export async function getCumulativeSavings(year?: number): Promise<CumulativeSavingsResponse> {
+  const res = await client.get<CumulativeSavingsResponse>('/analytics/savings-cumulative', {
+    params: year !== undefined ? { year } : undefined,
+  })
   return res.data
 }

@@ -1,15 +1,20 @@
 import Plot from 'react-plotly.js'
-import type { CumulativeSpendingResponse } from '../../types'
+import type { CumulativeSavingsResponse } from '../../types'
 
 interface Props {
-  data: CumulativeSpendingResponse
+  data: CumulativeSavingsResponse
   rate: number
   currency: string
 }
 
-export default function CumulativeSpendingChart({ data, rate, currency }: Props) {
+export default function CumulativeSavingsChart({ data, rate, currency }: Props) {
   const periods = data.points.map((p) => p.period)
-  const cumulative = data.points.map((p) => p.cumulative_total * rate)
+  const cumulative = data.points.map((p) => p.cumulative_saving * rate)
+
+  const lineColor = cumulative[cumulative.length - 1] >= 0 ? '#a6e3a1' : '#f38ba8'
+  const fillColor = cumulative[cumulative.length - 1] >= 0
+    ? 'rgba(166,227,161,0.12)'
+    : 'rgba(243,139,168,0.12)'
 
   return (
     <Plot
@@ -19,16 +24,16 @@ export default function CumulativeSpendingChart({ data, rate, currency }: Props)
           y: cumulative,
           type: 'scatter',
           mode: 'lines+markers',
-          name: 'Cumulative',
-          line: { color: '#cba6f7', width: 2 },
-          marker: { color: '#cba6f7', size: 6 },
+          name: 'Cumulative Savings',
+          line: { color: lineColor, width: 2 },
+          marker: { color: lineColor, size: 6 },
           fill: 'tozeroy',
-          fillcolor: 'rgba(203,166,247,0.12)',
+          fillcolor: fillColor,
           hovertemplate: `%{x}<br>Cumulative: ${currency} %{y:,.2f}<extra></extra>`,
         },
       ]}
       layout={{
-        title: { text: `Cumulative Spending — ${data.year}`, font: { color: '#cdd6f4', size: 14 } },
+        title: { text: `Cumulative Savings — ${data.year}`, font: { color: '#cdd6f4', size: 14 } },
         paper_bgcolor: '#181825',
         plot_bgcolor: '#181825',
         font: { color: '#cdd6f4' },
@@ -37,6 +42,8 @@ export default function CumulativeSpendingChart({ data, rate, currency }: Props)
           gridcolor: '#313244',
           tickfont: { color: '#6c7086' },
           tickprefix: `${currency} `,
+          zeroline: true,
+          zerolinecolor: '#45475a',
         },
         margin: { t: 40, r: 20, b: 40, l: 60 },
         showlegend: false,

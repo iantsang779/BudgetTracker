@@ -1,15 +1,18 @@
 import { useState, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useWebSocket } from '../hooks/useWebSocket'
-import { useMetrics, useCumulativeSpending, useSpendingByCategory, useSpendingOverTime } from '../hooks/useAnalytics'
+import { useMetrics, useCumulativeSpending, useCumulativeSavings, useSpendingByCategory, useSpendingOverTime } from '../hooks/useAnalytics'
 import { useIncomeSummary } from '../hooks/useIncome'
 import { useCurrencyRate, fmtCurrency } from '../hooks/useCurrency'
 import useAppStore from '../store/useAppStore'
 import MetricsDashboard from '../components/metrics/MetricsDashboard'
 import CumulativeSpendingChart from '../components/charts/CumulativeSpendingChart'
+import MonthlySpendingChart from '../components/charts/MonthlySpendingChart'
 import SpendingByCategoryChart from '../components/charts/SpendingByCategoryChart'
 import SavingsChart from '../components/charts/SavingsChart'
 import SpendingTrendChart from '../components/charts/SpendingTrendChart'
+import MonthlySavingsChart from '../components/charts/MonthlySavingsChart'
+import CumulativeSavingsChart from '../components/charts/CumulativeSavingsChart'
 
 const card: React.CSSProperties = {
   background: '#181825',
@@ -67,6 +70,7 @@ export default function DashboardPage() {
   const { data: metrics, isLoading: metricsLoading } = useMetrics()
   const { data: summary, isLoading: summaryLoading } = useIncomeSummary()
   const { data: cumulative, isLoading: cumulativeLoading } = useCumulativeSpending()
+  const { data: savings, isLoading: savingsLoading } = useCumulativeSavings()
   const { data: overTime, isLoading: overTimeLoading } = useSpendingOverTime()
 
   // Derive available months from spending-over-time, default to current month
@@ -128,15 +132,22 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Cumulative Spending Chart */}
+      {/* Monthly + Cumulative Spending Charts */}
       <section>
-        <h2 style={sectionHeading}>Cumulative Spending</h2>
+        <h2 style={sectionHeading}>Spending Overview</h2>
         {cumulativeLoading ? (
           <p style={{ color: '#6c7086' }}>Loading…</p>
         ) : cumulative && cumulative.points.length > 0 ? (
-          <CumulativeSpendingChart data={cumulative} rate={rate} currency={displayCurrency} />
+          <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <MonthlySpendingChart data={cumulative} rate={rate} currency={displayCurrency} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <CumulativeSpendingChart data={cumulative} rate={rate} currency={displayCurrency} />
+            </div>
+          </div>
         ) : (
-          <div style={emptyState}>No spending data yet — add transactions to see cumulative totals.</div>
+          <div style={emptyState}>No spending data yet — add transactions to see spending charts.</div>
         )}
       </section>
 
@@ -162,8 +173,8 @@ export default function DashboardPage() {
             ))}
           </select>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-          <div>
+        <div style={{ display: 'flex', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={sectionHeading}>Spending by Category</h2>
             {byCategoryLoading ? (
               <p style={{ color: '#6c7086' }}>Loading…</p>
@@ -173,7 +184,7 @@ export default function DashboardPage() {
               <div style={emptyState}>No spending for {selectedMonth}.</div>
             )}
           </div>
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={sectionHeading}>Savings Breakdown</h2>
             {metricsLoading ? (
               <p style={{ color: '#6c7086' }}>Loading…</p>
@@ -191,15 +202,22 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Spending Over Time Chart */}
+      {/* Savings Overview Charts */}
       <section>
-        <h2 style={sectionHeading}>Spending Over Time</h2>
-        {overTimeLoading ? (
+        <h2 style={sectionHeading}>Savings Overview</h2>
+        {savingsLoading ? (
           <p style={{ color: '#6c7086' }}>Loading…</p>
-        ) : overTime && overTime.points.length > 0 ? (
-          <SpendingTrendChart data={overTime} rate={rate} currency={displayCurrency} />
+        ) : savings && savings.points.length > 0 ? (
+          <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <MonthlySavingsChart data={savings} rate={rate} currency={displayCurrency} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <CumulativeSavingsChart data={savings} rate={rate} currency={displayCurrency} />
+            </div>
+          </div>
         ) : (
-          <div style={emptyState}>No historical data yet — add transactions to see monthly trends.</div>
+          <div style={emptyState}>No data yet — add income and transactions to see savings charts.</div>
         )}
       </section>
     </div>
