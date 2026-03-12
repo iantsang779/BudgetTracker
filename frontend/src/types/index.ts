@@ -48,6 +48,7 @@ export interface CategoryRead {
 // ── Transactions ──────────────────────────────────────────────────────────────
 
 export type TransactionSource = 'manual' | 'voice'
+export type TransactionRecurrence = 'monthly' | 'yearly'
 
 export interface TransactionCreate {
   account_id: number
@@ -59,6 +60,7 @@ export interface TransactionCreate {
   merchant?: string | null
   transaction_date: string
   source?: TransactionSource
+  recurrence?: TransactionRecurrence | null
   voice_transcript?: string | null
 }
 
@@ -72,6 +74,7 @@ export interface TransactionUpdate {
   merchant?: string | null
   transaction_date?: string
   source?: TransactionSource
+  recurrence?: TransactionRecurrence | null
   voice_transcript?: string | null
 }
 
@@ -86,6 +89,7 @@ export interface TransactionRead {
   merchant: string | null
   transaction_date: string
   source: TransactionSource
+  recurrence: TransactionRecurrence | null
   voice_transcript: string | null
   deleted_at: string | null
 }

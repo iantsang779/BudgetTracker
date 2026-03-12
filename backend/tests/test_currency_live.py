@@ -9,8 +9,8 @@ Requires EXCHANGERATE_API_KEY to be set in .env at the project root.
 Raises exceptions (not soft failures) if the key is missing or the API call fails.
 """
 
-import pytest
 import httpx
+import pytest
 
 from backend.config import settings
 from backend.services.currency_service import EXCHANGERATE_API_BASE
@@ -21,7 +21,7 @@ from backend.services.currency_service import EXCHANGERATE_API_BASE
 async def test_api_key_is_configured() -> None:
     """Raise if EXCHANGERATE_API_KEY is not set in .env."""
     if not settings.exchangerate_api_key:
-        raise EnvironmentError(
+        raise OSError(
             "EXCHANGERATE_API_KEY is not set. "
             "Add it to .env at the project root before running live tests."
         )
@@ -38,9 +38,7 @@ async def test_live_api_call_succeeds() -> None:
         httpx.HTTPStatusError: if the HTTP response is a 4xx/5xx error.
     """
     if not settings.exchangerate_api_key:
-        raise EnvironmentError(
-            "EXCHANGERATE_API_KEY is not set in .env — cannot run live API test."
-        )
+        raise OSError("EXCHANGERATE_API_KEY is not set in .env — cannot run live API test.")
 
     url = f"{EXCHANGERATE_API_BASE}/{settings.exchangerate_api_key}/latest/USD"
 
@@ -69,9 +67,7 @@ async def test_live_gbp_rate_is_plausible() -> None:
     This catches cases where the API returns obviously wrong values.
     """
     if not settings.exchangerate_api_key:
-        raise EnvironmentError(
-            "EXCHANGERATE_API_KEY is not set in .env — cannot run live API test."
-        )
+        raise OSError("EXCHANGERATE_API_KEY is not set in .env — cannot run live API test.")
 
     url = f"{EXCHANGERATE_API_BASE}/{settings.exchangerate_api_key}/latest/USD"
 

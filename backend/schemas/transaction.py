@@ -20,6 +20,7 @@ class TransactionCreate(BaseModel):
     merchant: str = ""
     transaction_date: datetime
     source: Literal["manual", "voice"] = "manual"
+    recurrence: Literal["monthly", "yearly"] | None = None
     voice_transcript: str | None = None
 
 
@@ -33,6 +34,7 @@ class TransactionUpdate(BaseModel):
     description: str | None = None
     merchant: str | None = None
     transaction_date: datetime | None = None
+    recurrence: Literal["monthly", "yearly"] | None = None
 
 
 class TransactionRead(BaseModel):
@@ -50,5 +52,6 @@ class TransactionRead(BaseModel):
     merchant: str
     transaction_date: datetime
     source: str
+    recurrence: str | None
     voice_transcript: str | None
     created_at: datetime

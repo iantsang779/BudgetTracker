@@ -32,6 +32,9 @@ class Transaction(Base):
     source: Mapped[str] = mapped_column(  # manual | voice
         String(20), nullable=False, default="manual"
     )
+    recurrence: Mapped[str | None] = mapped_column(  # monthly | yearly | None (one-off)
+        String(20), nullable=True, default=None
+    )
     voice_transcript: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

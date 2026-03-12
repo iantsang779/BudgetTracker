@@ -17,9 +17,6 @@ const defaultForm: IncomeCreate = {
   end_date: null,
 }
 
-// Fields shown to user: amount, currency, recurrence, date, description
-// account_id hardcoded; amount_base mirrors amount_local
-
 const inputStyle: React.CSSProperties = {
   background: '#313244',
   border: '1px solid #45475a',
@@ -35,6 +32,31 @@ const card: React.CSSProperties = {
   borderRadius: 10,
   padding: '16px 20px',
   minWidth: 160,
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+function groupByMonth(incomes: IncomeRead[]): Map<string, IncomeRead[]> {
+  const groups = new Map<string, IncomeRead[]>()
+  for (const inc of incomes) {
+    const d = new Date(inc.effective_date)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const existing = groups.get(key)
+    if (existing) {
+      existing.push(inc)
+    } else {
+      groups.set(key, [inc])
+    }
+  }
+  return new Map([...groups.entries()].sort((a, b) => b[0].localeCompare(a[0])))
+}
+
+function formatMonthKey(key: string): string {
+  const [year, month] = key.split('-')
+  return `${MONTH_NAMES[Number(month) - 1]} ${year}`
 }
 
 export default function IncomePage() {
@@ -86,6 +108,8 @@ export default function IncomePage() {
       })
     }
   }
+
+  const grouped = incomes ? groupByMonth(incomes) : new Map<string, IncomeRead[]>()
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -159,50 +183,72 @@ export default function IncomePage() {
         </form>
       )}
 
-      {/* Table */}
+      {/* Grouped list */}
       {isLoading ? (
         <p style={{ color: '#6c7086' }}>Loading…</p>
       ) : !incomes?.length ? (
         <p style={{ color: '#6c7086' }}>No income entries found.</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #313244', textAlign: 'left', color: '#6c7086' }}>
-                <th style={{ padding: '8px 12px' }}>Description</th>
-                <th style={{ padding: '8px 12px' }}>Amount ({displayCurrency})</th>
-                <th style={{ padding: '8px 12px' }}>Recurrence</th>
-                <th style={{ padding: '8px 12px' }}>Effective Date</th>
-                <th style={{ padding: '8px 12px' }}>End Date</th>
-                <th style={{ padding: '8px 12px' }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {incomes.map((inc) => (
-                <tr key={inc.id} style={{ borderBottom: '1px solid #313244', background: editingId === inc.id ? '#1e1e2e' : 'transparent' }}>
-                  <td style={{ padding: '8px 12px' }}>{inc.description ?? '—'}</td>
-                  <td style={{ padding: '8px 12px' }}>{fmtCurrency(inc.amount_base * rate, displayCurrency)}</td>
-                  <td style={{ padding: '8px 12px' }}>{inc.recurrence}</td>
-                  <td style={{ padding: '8px 12px' }}>{inc.effective_date.slice(0, 10)}</td>
-                  <td style={{ padding: '8px 12px' }}>{inc.end_date ? inc.end_date.slice(0, 10) : '—'}</td>
-                  <td style={{ padding: '8px 12px', display: 'flex', gap: 8 }}>
-                    <button
-                      onClick={() => handleEdit(inc)}
-                      style={{ background: 'none', border: 'none', color: '#89b4fa', cursor: 'pointer', fontSize: 13 }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(inc.id)}
-                      style={{ background: 'none', border: 'none', color: '#f38ba8', cursor: 'pointer', fontSize: 13 }}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {[...grouped.entries()].map(([monthKey, entries]) => {
+            const monthTotal = entries.reduce((sum, inc) => sum + inc.amount_base * rate, 0)
+            return (
+              <div key={monthKey}>
+                {/* Month header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#a6e3a1', textTransform: 'uppercase', letterSpacing: 1 }}>
+                    {formatMonthKey(monthKey)}
+                  </span>
+                  <span style={{ fontSize: 12, color: '#6c7086' }}>
+                    {fmtCurrency(monthTotal, displayCurrency)} · {entries.length} source{entries.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #313244', textAlign: 'left', color: '#6c7086' }}>
+                        <th style={{ padding: '6px 12px' }}>Description</th>
+                        <th style={{ padding: '6px 12px' }}>Amount ({displayCurrency})</th>
+                        <th style={{ padding: '6px 12px' }}>Recurrence</th>
+                        <th style={{ padding: '6px 12px' }}>Effective Date</th>
+                        <th style={{ padding: '6px 12px' }}>End Date</th>
+                        <th style={{ padding: '6px 12px' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {entries.map((inc) => (
+                        <tr key={inc.id} style={{ borderBottom: '1px solid #313244', background: editingId === inc.id ? '#1e1e2e' : 'transparent' }}>
+                          <td style={{ padding: '8px 12px' }}>{inc.description || '—'}</td>
+                          <td style={{ padding: '8px 12px' }}>{fmtCurrency(inc.amount_base * rate, displayCurrency)}</td>
+                          <td style={{ padding: '8px 12px' }}>
+                            <span style={{ fontSize: 11, background: '#313244', color: '#a6e3a1', borderRadius: 4, padding: '2px 6px' }}>
+                              {inc.recurrence}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 12px' }}>{inc.effective_date.slice(0, 10)}</td>
+                          <td style={{ padding: '8px 12px' }}>{inc.end_date ? inc.end_date.slice(0, 10) : '—'}</td>
+                          <td style={{ padding: '8px 12px', display: 'flex', gap: 8 }}>
+                            <button
+                              onClick={() => handleEdit(inc)}
+                              style={{ background: 'none', border: 'none', color: '#89b4fa', cursor: 'pointer', fontSize: 13 }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => deleteMutation.mutate(inc.id)}
+                              style={{ background: 'none', border: 'none', color: '#f38ba8', cursor: 'pointer', fontSize: 13 }}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

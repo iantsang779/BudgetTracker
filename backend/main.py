@@ -44,7 +44,9 @@ async def _seed_default_categories() -> None:
 
     async for db in get_db():
         result = await db.execute(
-            select(Category.name).where(Category.is_income.is_(False), Category.deleted_at.is_(None))
+            select(Category.name).where(
+                Category.is_income.is_(False), Category.deleted_at.is_(None)
+            )
         )
         existing_names = {row[0] for row in result.all()}
         added = 0

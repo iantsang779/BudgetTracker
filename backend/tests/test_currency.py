@@ -61,9 +61,12 @@ async def test_convert_cross_currency_uses_api(client: AsyncClient) -> None:
 
     e.g. 100 USD at 0.7439 GBP/USD = 74.39 GBP.
     """
-    with _PATCH_SETTINGS, patch(
-        "backend.services.currency_service.httpx.AsyncClient",
-        _mock_http_client({"GBP": 0.7439}),
+    with (
+        _PATCH_SETTINGS,
+        patch(
+            "backend.services.currency_service.httpx.AsyncClient",
+            _mock_http_client({"GBP": 0.7439}),
+        ),
     ):
         response = await client.post(
             "/api/v1/currency/convert",
@@ -82,9 +85,7 @@ async def test_convert_uses_cached_rate(client: AsyncClient) -> None:
     """Second conversion for the same pair uses the cached rate without calling the API."""
     mock_class = _mock_http_client({"EUR": 0.92})
 
-    with _PATCH_SETTINGS, patch(
-        "backend.services.currency_service.httpx.AsyncClient", mock_class
-    ):
+    with _PATCH_SETTINGS, patch("backend.services.currency_service.httpx.AsyncClient", mock_class):
         await client.post(
             "/api/v1/currency/convert",
             json={"amount": 1.0, "from_code": "USD", "to_code": "EUR"},
@@ -107,9 +108,12 @@ async def test_convert_api_failure_falls_back_to_one(client: AsyncClient) -> Non
     failing_client.__aenter__ = AsyncMock(return_value=failing_client)
     failing_client.__aexit__ = AsyncMock(return_value=None)
 
-    with _PATCH_SETTINGS, patch(
-        "backend.services.currency_service.httpx.AsyncClient",
-        MagicMock(return_value=failing_client),
+    with (
+        _PATCH_SETTINGS,
+        patch(
+            "backend.services.currency_service.httpx.AsyncClient",
+            MagicMock(return_value=failing_client),
+        ),
     ):
         response = await client.post(
             "/api/v1/currency/convert",
@@ -125,9 +129,12 @@ async def test_convert_api_failure_falls_back_to_one(client: AsyncClient) -> Non
 @pytest.mark.asyncio
 async def test_refresh_rates_stores_and_returns_count(client: AsyncClient) -> None:
     """POST /rates/refresh calls the API for each currency and returns the count refreshed."""
-    with _PATCH_SETTINGS, patch(
-        "backend.services.currency_service.httpx.AsyncClient",
-        _mock_http_client({"EUR": 0.92, "GBP": 0.74, "JPY": 149.5}),
+    with (
+        _PATCH_SETTINGS,
+        patch(
+            "backend.services.currency_service.httpx.AsyncClient",
+            _mock_http_client({"EUR": 0.92, "GBP": 0.74, "JPY": 149.5}),
+        ),
     ):
         response = await client.post("/api/v1/currency/rates/refresh")
 
