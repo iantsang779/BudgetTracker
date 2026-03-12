@@ -17,7 +17,7 @@ Desktop-first personal budget tracker. Users log income/expenses, view live KPI 
 | Frontend | React + TypeScript (Vite) |
 | Charts | Plotly.js (`react-plotly.js`) |
 | Desktop | Electron (spawns FastAPI child process) |
-| Regression | scikit-learn `LinearRegression` |
+| Regression | Removed — replaced with cumulative spending/savings charts |
 | Voice (desktop) | Web Speech API (Electron Chromium) |
 | Currency | exchangerate-api.com v6 (free tier, API key required) |
 | Inflation | BLS CPI API + embedded fallback JSON |
@@ -30,7 +30,7 @@ Desktop-first personal budget tracker. Users log income/expenses, view live KPI 
 |---|---|---|
 | 1 | Core backend: all 6 models, base repo, accounts/transactions/categories routers + tests | ✅ Done |
 | 2 | Income router, `currency_service.py`, `inflation_service.py`, CPI fallback JSON | ✅ Done |
-| 3 | `analytics_service.py` (regression), analytics router, `ConnectionManager`, WebSocket broadcasts | ✅ Done |
+| 3 | `analytics_service.py` (KPI metrics, cumulative spending/savings, by-category), analytics router, `ConnectionManager`, WebSocket broadcasts | ✅ Done |
 | 4 | Frontend core: Vite scaffold, Zustand stores, React Query, API client, AppShell, TransactionsPage, IncomePage | ✅ Done |
 | 5 | Charts + live updates: Plotly.js charts, MetricsDashboard WebSocket hook, React Query polling (30s) | ✅ Done |
 | 6 | Voice input: `voice_service.py` NLP parser, voice router, `useVoiceInput.ts`, `VoiceInputButton` | ⬜ Next |
@@ -81,7 +81,7 @@ BudgetTracker/
 │   └── tests/
 │       ├── conftest.py         # In-memory SQLite, AsyncClient fixture, dependency override
 │       └── test_*.py           # test_accounts, categories, transactions, income, currency, analytics
-├── frontend/                   # TODO Phase 4
+├── frontend/
 │   ├── vite.config.ts
 │   ├── tsconfig.json           # strict: true
 │   └── src/
@@ -96,7 +96,7 @@ BudgetTracker/
 │       │   ├── layout/         # AppShell, Sidebar, TopBar
 │       │   ├── transactions/   # TransactionList, TransactionForm, VoiceInputButton
 │       │   ├── income/         # IncomeForm, IncomeList, IncomeSummaryCard
-│       │   ├── charts/         # SavingsProjectionChart, SpendingByCategoryChart, SpendingTrendChart
+│       │   ├── charts/         # CumulativeSpendingChart, CumulativeSavingsChart, MonthlySpendingChart, MonthlySavingsChart, SavingsChart, SpendingByCategoryChart, SpendingTrendChart
 │       │   ├── metrics/        # MetricsDashboard (KPI cards, WebSocket-driven)
 │       │   └── common/         # CurrencySelector, DateRangePicker, LoadingSpinner
 │       └── pages/              # DashboardPage, TransactionsPage, IncomePage, AnalyticsPage, SettingsPage
@@ -131,7 +131,7 @@ All monetary amounts stored as `REAL` in USD (`amount_base`) at write time; disp
 | `/transactions` | GET /?account_id&category_id&currency_code&source&date_from&date_to, POST /, GET /{id}, PATCH /{id}, DELETE /{id} |
 | `/income` | GET /, POST /, GET /summary, GET /{id}, PATCH /{id}, DELETE /{id} |
 | `/currency` | GET /rates, POST /rates/refresh, POST /convert |
-| `/analytics` | GET /metrics, GET /savings-projection?months_ahead=6, GET /spending-by-category?start_date&end_date, GET /spending-over-time |
+| `/analytics` | GET /metrics, GET /spending-cumulative?year=, GET /savings-cumulative?year=, GET /spending-by-category?start_date&end_date, GET /spending-over-time |
 | `WS /ws/analytics` | Pushes `{"event":"metrics_updated","data":{...MetricsResponse}}` on every write |
 
 ---
@@ -139,12 +139,14 @@ All monetary amounts stored as `REAL` in USD (`amount_base`) at write time; disp
 ## Key Implementation Details
 
 ### Analytics Service (`backend/services/analytics_service.py`)
-- `get_metrics()` → `MetricsResponse`: total_spending_base, predicted_monthly_base, savings_rate, inflation_adjusted_spending, monthly_income_base, regression_slope, regression_r2
-- `get_savings_projection()` → `SavingsProjectionResponse`: `points` list of `ProjectionPoint` (period, actual|None, predicted, upper_band, lower_band), slope, r2_score, error_std
-- `get_spending_by_category()` → `SpendingByCategoryResponse`: groups by category_id (null = "Uncategorized")
+- `get_metrics()` → `MetricsResponse`: total_spending_base, savings_rate, monthly_income_base
+- `get_cumulative_spending(year?)` → `CumulativeSpendingResponse`: monthly totals + running cumulative, filtered to requested year
+- `get_cumulative_savings(year?)` → `CumulativeSavingsResponse`: per-month income, spending, saving, running cumulative; includes income-active months with no spending; capped at current month
+- `get_spending_by_category(start_date?, end_date?)` → `SpendingByCategoryResponse`: groups by category_id (null = "Uncategorized"), with percentage per category
 - `get_spending_over_time()` → `SpendingOverTimeResponse`: monthly timeseries
-- Regression: `LinearRegression` on month-index vs total; fallback to average if <3 months
-- Private helpers: `_monthly_spend_totals()`, `_fit_regression()` → `_RegResult` NamedTuple, `_add_months(period, n)`
+- Year validation: `Query(None, ge=2000, le=2100)` on cumulative endpoints (422 if out of range)
+- `income_helpers.monthly_base(amount_base, recurrence)` converts recurrence to monthly equivalent
+- `amount_base` is server-computed (not in TypeScript Create/Update types)
 
 ### WebSocket Live Updates (`backend/websocket_manager.py`)
 - `ConnectionManager` singleton `manager` imported everywhere needed
@@ -195,7 +197,7 @@ All monetary amounts stored as `REAL` in USD (`amount_base`) at write time; disp
 
 ## Dev Commands
 - Activate venv first: `source /home/iants/BudgetTracker/venv/bin/activate`
-- Backend tests: `cd backend && pytest tests/ -v --cov=. --cov-fail-under=80`
+- Backend tests: `cd backend && pytest tests/ -v --cov=. --cov-fail-under=80`  # 87% coverage, 62 tests
 - Type check: `python3 -m mypy backend/ --strict`
 - Lint check: `python3 -m ruff check backend/ && python3 -m ruff format --check backend/`
 - Lint fix: `python3 -m ruff check --fix backend/ && python3 -m ruff format backend/`
