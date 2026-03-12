@@ -147,3 +147,152 @@ async def test_spending_over_time_empty(client: AsyncClient) -> None:
     resp = await client.get("/api/v1/analytics/spending-over-time")
     assert resp.status_code == 200
     assert resp.json()["points"] == []
+
+
+# ---------------------------------------------------------------------------
+# Year query-parameter validation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_spending_cumulative_year_below_minimum_rejected(client: AsyncClient) -> None:
+    """year=1999 is below ge=2000 and must return 422."""
+    resp = await client.get("/api/v1/analytics/spending-cumulative?year=1999")
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_spending_cumulative_year_above_maximum_rejected(client: AsyncClient) -> None:
+    """year=2101 is above le=2100 and must return 422."""
+    resp = await client.get("/api/v1/analytics/spending-cumulative?year=2101")
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_savings_cumulative_year_below_minimum_rejected(client: AsyncClient) -> None:
+    """year=1999 is below ge=2000 and must return 422."""
+    resp = await client.get("/api/v1/analytics/savings-cumulative?year=1999")
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_savings_cumulative_year_above_maximum_rejected(client: AsyncClient) -> None:
+    """year=2101 is above le=2100 and must return 422."""
+    resp = await client.get("/api/v1/analytics/savings-cumulative?year=2101")
+    assert resp.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Savings-cumulative endpoint
+# ---------------------------------------------------------------------------
+
+
+async def _create_income(
+    client: AsyncClient,
+    account_id: int,
+    amount: float,
+    recurrence: str = "monthly",
+    effective_date: str = "2024-01-01T00:00:00",
+) -> None:
+    resp = await client.post(
+        "/api/v1/income/",
+        json={
+            "account_id": account_id,
+            "amount_local": amount,
+            "currency_code": "USD",
+            "amount_base": amount,
+            "recurrence": recurrence,
+            "effective_date": effective_date,
+        },
+    )
+    assert resp.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_savings_cumulative_empty(client: AsyncClient) -> None:
+    """No transactions → empty points list."""
+    resp = await client.get("/api/v1/analytics/savings-cumulative")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["points"] == []
+
+
+@pytest.mark.asyncio
+async def test_savings_cumulative_positive_savings(client: AsyncClient) -> None:
+    """Income 1000/month, spending 400 → monthly saving 600, cumulative 600."""
+    acc_id = await _create_account(client)
+    cat_id = await _create_category(client)
+    await _create_income(client, acc_id, 1000.0, effective_date="2026-01-01T00:00:00")
+    await _create_transaction(client, acc_id, cat_id, 400.0, "2026-01-15")
+
+    resp = await client.get("/api/v1/analytics/savings-cumulative?year=2026")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["year"] == 2026
+    assert len(data["points"]) == 1
+    pt = data["points"][0]
+    assert pt["period"] == "2026-01"
+    assert pt["monthly_income"] == pytest.approx(1000.0)
+    assert pt["monthly_spending"] == pytest.approx(400.0)
+    assert pt["monthly_saving"] == pytest.approx(600.0)
+    assert pt["cumulative_saving"] == pytest.approx(600.0)
+
+
+@pytest.mark.asyncio
+async def test_savings_cumulative_accumulates_across_months(client: AsyncClient) -> None:
+    """Running cumulative saving adds up correctly across multiple months."""
+    acc_id = await _create_account(client)
+    cat_id = await _create_category(client)
+    await _create_income(client, acc_id, 1000.0, effective_date="2026-01-01T00:00:00")
+    await _create_transaction(client, acc_id, cat_id, 300.0, "2026-01-10")
+    await _create_transaction(client, acc_id, cat_id, 500.0, "2026-02-10")
+
+    resp = await client.get("/api/v1/analytics/savings-cumulative?year=2026")
+    assert resp.status_code == 200
+    pts = resp.json()["points"]
+    assert len(pts) == 2
+    # Jan: income 1000 - spending 300 = saving 700, cumulative 700
+    assert pts[0]["monthly_saving"] == pytest.approx(700.0)
+    assert pts[0]["cumulative_saving"] == pytest.approx(700.0)
+    # Feb: income 1000 - spending 500 = saving 500, cumulative 1200
+    assert pts[1]["monthly_saving"] == pytest.approx(500.0)
+    assert pts[1]["cumulative_saving"] == pytest.approx(1200.0)
+
+
+@pytest.mark.asyncio
+async def test_savings_cumulative_year_filter_excludes_other_years(
+    client: AsyncClient,
+) -> None:
+    """Transactions from a different year are excluded when year= is specified."""
+    acc_id = await _create_account(client)
+    cat_id = await _create_category(client)
+    await _create_income(client, acc_id, 1000.0, effective_date="2025-01-01T00:00:00")
+    await _create_transaction(client, acc_id, cat_id, 200.0, "2025-06-01")
+    await _create_transaction(client, acc_id, cat_id, 300.0, "2026-01-15")
+
+    resp = await client.get("/api/v1/analytics/savings-cumulative?year=2026")
+    assert resp.status_code == 200
+    pts = resp.json()["points"]
+    # Only the 2026 transaction appears
+    assert len(pts) == 1
+    assert pts[0]["period"] == "2026-01"
+    assert pts[0]["monthly_spending"] == pytest.approx(300.0)
+
+
+@pytest.mark.asyncio
+async def test_savings_cumulative_income_not_yet_active_excluded(
+    client: AsyncClient,
+) -> None:
+    """Income whose effective_date is after the transaction month is not counted."""
+    acc_id = await _create_account(client)
+    cat_id = await _create_category(client)
+    # Income starts in March — should not count for January spending
+    await _create_income(client, acc_id, 2000.0, effective_date="2026-03-01T00:00:00")
+    await _create_transaction(client, acc_id, cat_id, 100.0, "2026-01-10")
+
+    resp = await client.get("/api/v1/analytics/savings-cumulative?year=2026")
+    assert resp.status_code == 200
+    pts = resp.json()["points"]
+    assert len(pts) == 1
+    assert pts[0]["monthly_income"] == pytest.approx(0.0)
+    assert pts[0]["monthly_saving"] == pytest.approx(-100.0)

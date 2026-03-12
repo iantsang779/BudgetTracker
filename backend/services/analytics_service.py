@@ -156,8 +156,7 @@ class AnalyticsService:
             .order_by(func.strftime("%Y-%m", Transaction.transaction_date))
         )
         spending_by_month: dict[str, float] = {
-            str(row["period"]): float(row["total"] or 0)
-            for row in spend_result.mappings().all()
+            str(row["period"]): float(row["total"] or 0) for row in spend_result.mappings().all()
         }
 
         income_result = await self.session.execute(
@@ -178,8 +177,8 @@ class AnalyticsService:
             monthly_income: float = sum(
                 monthly_base(e.amount_base, e.recurrence)
                 for e in all_income
-                if e.effective_date <= month_end
-                and (e.end_date is None or e.end_date >= month_start)
+                if e.effective_date.replace(tzinfo=None) <= month_end
+                and (e.end_date is None or e.end_date.replace(tzinfo=None) >= month_start)
             )
             monthly_spending = spending_by_month[period]
             monthly_saving = monthly_income - monthly_spending

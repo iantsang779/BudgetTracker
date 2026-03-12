@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_db
@@ -48,7 +48,7 @@ async def get_metrics(db: AsyncSession = Depends(get_db)) -> MetricsResponse:
 
 @router.get("/spending-cumulative", response_model=CumulativeSpendingResponse)
 async def spending_cumulative(
-    year: int | None = None,
+    year: int | None = Query(None, ge=2000, le=2100),
     db: AsyncSession = Depends(get_db),
 ) -> CumulativeSpendingResponse:
     """Return cumulative spending for a calendar year (defaults to current year)."""
@@ -57,7 +57,7 @@ async def spending_cumulative(
 
 @router.get("/savings-cumulative", response_model=CumulativeSavingsResponse)
 async def savings_cumulative(
-    year: int | None = None,
+    year: int | None = Query(None, ge=2000, le=2100),
     db: AsyncSession = Depends(get_db),
 ) -> CumulativeSavingsResponse:
     """Return cumulative savings (income minus spending) for a calendar year."""
