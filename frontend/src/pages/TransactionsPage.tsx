@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   useTransactions,
   useCreateTransaction,
@@ -9,7 +9,8 @@ import { useCategories } from '../hooks/useCategories'
 import { useCurrencyRate, fmtCurrency } from '../hooks/useCurrency'
 import { CURRENCIES } from '../constants/currencies'
 import useAppStore from '../store/useAppStore'
-import type { TransactionCreate, TransactionFilters, TransactionRead, TransactionRecurrence } from '../types'
+import VoiceInputButton from '../components/transactions/VoiceInputButton'
+import type { TransactionCreate, TransactionFilters, TransactionRead, TransactionRecurrence, VoiceParseResponse } from '../types'
 
 const today = new Date().toISOString().slice(0, 10)
 
@@ -106,6 +107,25 @@ export default function TransactionsPage() {
     setIsRecurring(false)
   }
 
+  const handleVoiceParsed = useCallback((result: VoiceParseResponse) => {
+    const matchedCategory = result.category_hint
+      ? (expenseCategories?.find((c) => c.name.toLowerCase() === result.category_hint!.toLowerCase()) ?? null)
+      : null
+
+    setForm((prev) => ({
+      ...prev,
+      amount_local: result.amount ?? prev.amount_local,
+      currency_code: result.currency_code ?? prev.currency_code,
+      description: result.description ?? prev.description,
+      merchant: result.merchant ?? prev.merchant,
+      transaction_date: result.transaction_date ?? prev.transaction_date,
+      category_id: matchedCategory?.id ?? prev.category_id,
+      source: 'voice',
+      voice_transcript: result.raw_transcript,
+    }))
+    setShowForm(true)
+  }, [expenseCategories])
+
   function handleRecurringToggle(checked: boolean) {
     setIsRecurring(checked)
     setForm((prev) => ({ ...prev, recurrence: checked ? 'monthly' : null }))
@@ -133,12 +153,15 @@ export default function TransactionsPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Transactions</h1>
-        <button
-          onClick={() => (showForm && editingId === null ? handleCancel() : setShowForm((v) => !v))}
-          style={{ ...inputStyle, cursor: 'pointer', background: '#cba6f7', color: '#1e1e2e', fontWeight: 600, border: 'none' }}
-        >
-          {showForm ? 'Cancel' : '+ New Transaction'}
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <VoiceInputButton onParsed={handleVoiceParsed} />
+          <button
+            onClick={() => (showForm && editingId === null ? handleCancel() : setShowForm((v) => !v))}
+            style={{ ...inputStyle, cursor: 'pointer', background: '#cba6f7', color: '#1e1e2e', fontWeight: 600, border: 'none' }}
+          >
+            {showForm ? 'Cancel' : '+ New Transaction'}
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -165,6 +188,13 @@ export default function TransactionsPage() {
           onSubmit={handleSubmit}
           style={{ display: 'flex', flexWrap: 'wrap', gap: 10, background: '#181825', padding: 16, borderRadius: 10, border: '1px solid #313244' }}
         >
+          {form.source === 'voice' && form.voice_transcript && (
+            <div style={{ width: '100%', background: '#1e1e2e', border: '1px solid #89b4fa', borderRadius: 6, padding: '8px 12px', fontSize: 12 }}>
+              <span style={{ color: '#89b4fa', fontWeight: 600 }}>Voice transcript: </span>
+              <span style={{ color: '#a6adc8' }}>"{form.voice_transcript}"</span>
+              <span style={{ color: '#6c7086', marginLeft: 8 }}>— please verify the fields below before saving.</span>
+            </div>
+          )}
           <input style={inputStyle} type="number" step="0.01" placeholder="Amount (local)" required
             value={form.amount_local}
             onChange={(e) => setForm({ ...form, amount_local: Number(e.target.value) })} />

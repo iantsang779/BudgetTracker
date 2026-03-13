@@ -15,7 +15,7 @@ class TransactionCreate(BaseModel):
     category_id: int | None = None
     amount_local: float = Field(gt=0)
     currency_code: str = "GBP"
-    amount_base: float = Field(gt=0)
+    amount_base: float = 0.0  # always overwritten server-side; 0.0 is a placeholder
     description: str = ""
     merchant: str = ""
     transaction_date: datetime

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Desktop-first personal budget tracker. Users log income/expenses, view live KPI metrics with regression-based spending predictions, see interactive charts that update on every entry, apply inflation/currency adjustments, and optionally use voice input. Mobile (iOS/Android) is a first-class future concern.
+Desktop-first personal budget tracker. Users log income/expenses, view live KPI metrics, see interactive charts that update on every entry, apply inflation/currency adjustments, and optionally use voice input. Mobile (iOS/Android) is a first-class future concern.
 
 **GitHub:** https://github.com/iantsang779/BudgetTracker
 **Git user:** iantsang779 <iantsang779@gmail.com>
@@ -17,7 +17,6 @@ Desktop-first personal budget tracker. Users log income/expenses, view live KPI 
 | Frontend | React + TypeScript (Vite) |
 | Charts | Plotly.js (`react-plotly.js`) |
 | Desktop | Electron (spawns FastAPI child process) |
-| Regression | Removed — replaced with cumulative spending/savings charts |
 | Voice (desktop) | Web Speech API (Electron Chromium) |
 | Currency | exchangerate-api.com v6 (free tier, API key required) |
 | Inflation | BLS CPI API + embedded fallback JSON |
@@ -43,66 +42,37 @@ Desktop-first personal budget tracker. Users log income/expenses, view live KPI 
 
 ```
 BudgetTracker/
-├── CLAUDE.md
 ├── pyproject.toml              # pytest, ruff, mypy config
-├── scripts/
-│   ├── dev.sh                  # Start backend + frontend concurrently (TODO Phase 8)
-│   └── build.sh                # Build frontend, package Electron (TODO Phase 8)
 ├── backend/
 │   ├── main.py                 # FastAPI app, router registration, WS /ws/analytics
 │   ├── config.py               # Settings (DB URL, API keys, port) via pydantic-settings
 │   ├── database.py             # Async SQLAlchemy engine, session factory, Base, get_db()
 │   ├── websocket_manager.py    # ConnectionManager singleton (manager), broadcast()
-│   ├── requirements.txt
 │   ├── models/                 # SQLAlchemy ORM (Mapped[] / mapped_column())
-│   │   ├── account.py, transaction.py, category.py
-│   │   ├── income.py, currency_rate.py, cpi_snapshot.py
 │   ├── schemas/                # Pydantic v2 request/response models
-│   │   ├── account.py, transaction.py, category.py
-│   │   ├── income.py, analytics.py, currency.py
 │   ├── repositories/           # Data access layer — NO business logic here
 │   │   ├── base_repository.py  # Generic CRUD: get, list, create, update, soft_delete
-│   │   ├── account_repository.py, category_repository.py
 │   │   ├── transaction_repository.py  # list_filtered() with date/category/account filters
 │   │   └── income_repository.py       # list_active() respects effective_date/end_date
 │   ├── services/               # Business logic — NO FastAPI coupling
-│   │   ├── analytics_service.py   # get_metrics(), get_savings_projection(), by-category, over-time
-│   │   ├── currency_service.py    # exchangerate.host, 24h TTL cache in DB
-│   │   ├── inflation_service.py   # BLS CPI API, fallback JSON, trailing CAGR
-│   │   ├── income_helpers.py      # monthly_base(amount_base, recurrence) shared util
-│   │   └── voice_service.py       # TODO Phase 6
+│   │   ├── analytics_service.py
+│   │   ├── currency_service.py
+│   │   ├── inflation_service.py
+│   │   ├── income_helpers.py   # monthly_base(amount_base, recurrence) shared util
+│   │   └── voice_service.py    # TODO Phase 6
 │   ├── routers/                # FastAPI APIRouter per domain (prefix in router, not main.py)
-│   │   ├── accounts.py, categories.py, transactions.py
-│   │   ├── income.py, currency.py, analytics.py
-│   │   └── voice.py            # TODO Phase 6
-│   ├── data/
-│   │   └── cpi_fallback.json   # Embedded US CPI data 2000–present
-│   ├── migrations/             # Alembic (TODO: initialise in Phase 8)
+│   ├── data/cpi_fallback.json  # Embedded US CPI data 2000–present
 │   └── tests/
 │       ├── conftest.py         # In-memory SQLite, AsyncClient fixture, dependency override
-│       └── test_*.py           # test_accounts, categories, transactions, income, currency, analytics
-├── frontend/
-│   ├── vite.config.ts
-│   ├── tsconfig.json           # strict: true
-│   └── src/
-│       ├── api/                # Axios client wrappers per domain
-│       ├── types/              # TS interfaces mirroring Pydantic schemas
-│       ├── hooks/
-│       │   ├── useTransactions.ts, useAnalytics.ts  (React Query)
-│       │   ├── useVoiceInput.ts   (Web Speech API)
-│       │   └── useWebSocket.ts    (auto-reconnect with backoff)
-│       ├── store/              # Zustand: currency, inflation override, UI state
-│       ├── components/
-│       │   ├── layout/         # AppShell, Sidebar, TopBar
-│       │   ├── transactions/   # TransactionList, TransactionForm, VoiceInputButton
-│       │   ├── income/         # IncomeForm, IncomeList, IncomeSummaryCard
-│       │   ├── charts/         # CumulativeSpendingChart, CumulativeSavingsChart, MonthlySpendingChart, MonthlySavingsChart, SavingsChart, SpendingByCategoryChart, SpendingTrendChart
-│       │   ├── metrics/        # MetricsDashboard (KPI cards, WebSocket-driven)
-│       │   └── common/         # CurrencySelector, DateRangePicker, LoadingSpinner
-│       └── pages/              # DashboardPage, TransactionsPage, IncomePage, AnalyticsPage, SettingsPage
+│       └── test_*.py
+├── frontend/src/
+│   ├── api/                    # Axios client wrappers per domain
+│   ├── types/                  # TS interfaces mirroring Pydantic schemas
+│   ├── hooks/                  # useTransactions, useAnalytics (React Query), useWebSocket, useVoiceInput
+│   ├── store/                  # Zustand: currency, inflation override, UI state
+│   ├── components/             # layout/, transactions/, income/, charts/, metrics/, common/
+│   └── pages/                  # DashboardPage, TransactionsPage, IncomePage, AnalyticsPage, SettingsPage
 └── electron/                   # TODO Phase 7
-    ├── main.ts                 # Spawn FastAPI, health-check loop, load renderer
-    └── preload.ts              # contextBridge IPC (expose port to renderer)
 ```
 
 ---
@@ -138,74 +108,78 @@ All monetary amounts stored as `REAL` in USD (`amount_base`) at write time; disp
 
 ## Key Implementation Details
 
-### Analytics Service (`backend/services/analytics_service.py`)
+### Analytics Service
 - `get_metrics()` → `MetricsResponse`: total_spending_base, savings_rate, monthly_income_base
-- `get_cumulative_spending(year?)` → `CumulativeSpendingResponse`: monthly totals + running cumulative, filtered to requested year
-- `get_cumulative_savings(year?)` → `CumulativeSavingsResponse`: per-month income, spending, saving, running cumulative; includes income-active months with no spending; capped at current month
-- `get_spending_by_category(start_date?, end_date?)` → `SpendingByCategoryResponse`: groups by category_id (null = "Uncategorized"), with percentage per category
-- `get_spending_over_time()` → `SpendingOverTimeResponse`: monthly timeseries
+- `get_cumulative_spending(year?)` → monthly totals + running cumulative, filtered to year
+- `get_cumulative_savings(year?)` → per-month income/spending/saving/running cumulative; capped at current month
+- `get_spending_by_category(start_date?, end_date?)` → groups by category_id (null = "Uncategorized"), with percentage
 - Year validation: `Query(None, ge=2000, le=2100)` on cumulative endpoints (422 if out of range)
-- `income_helpers.monthly_base(amount_base, recurrence)` converts recurrence to monthly equivalent
-- `amount_base` is server-computed (not in TypeScript Create/Update types)
 
-### WebSocket Live Updates (`backend/websocket_manager.py`)
-- `ConnectionManager` singleton `manager` imported everywhere needed
+### WebSocket Live Updates
+- `ConnectionManager` singleton `manager` — import from `websocket_manager.py`
 - `notify_clients(db)` in `routers/analytics.py` — call after every write in transactions/income routers
 - Dead connections pruned silently on broadcast
 
-### Currency Service (`backend/services/currency_service.py`)
-- Fetches from `https://v6.exchangerate-api.com/v6/{key}/latest/{base}`; 24h TTL cache in `currency_rates` table
-- Response format: `{"result": "success", "base_code": "USD", "conversion_rates": {...}}`
-- API key set via `EXCHANGERATE_API_KEY` in `.env`; returns 1.0 if key missing or API fails
-- `.env.example` committed; `.env` git-ignored
+### Currency Service
+- Fetches from exchangerate-api.com v6; 24h TTL cache in `currency_rates` table
+- `EXCHANGERATE_API_KEY` in `.env`; returns 1.0 if key missing or API fails
 
-### Inflation Service (`backend/services/inflation_service.py`)
+### Inflation Service
 - `get_annual_rate()`: user override → trailing 12-month CPI CAGR → 3.5% default
-- `ensure_cpi_loaded()`: loads `data/cpi_fallback.json` if DB empty
-- `fetch_latest_bls(api_key)`: BLS series CUUR0000SA0
-
-### Income Helpers (`backend/services/income_helpers.py`)
-- `monthly_base(amount_base, recurrence)`: converts yearly→/12, one_off→0
+- BLS series CUUR0000SA0; fallback: `data/cpi_fallback.json`
 
 ### Patterns Used Everywhere
-- `get_db()` dependency: yields `AsyncSession`, commits on exit, rolls back on exception
+- `get_db()`: yields `AsyncSession`, commits on exit, rolls back on exception
 - `BaseRepository`: `get`, `list`, `create` (flush+refresh), `update`, `soft_delete`
 - All schemas: `from_attributes=True` on Read models; `X | None` not `Optional[X]`
-- `ruff check --fix` auto-fixes I001 (import sort); E402 ignored (future-import pattern)
+- `amount_base` is server-computed — never in TypeScript Create/Update types
 
 ---
 
-## Python Rules
+## Python Rules (project-specific)
+
+> General style, linting, and type hint rules are in `~/.claude/rules/common/coding-style.md`.
+> For testing workflow, use `/pytest-tdd` skill.
+> For code review, use `/python-review` skill.
+
 - All files: `from __future__ import annotations` (line 1)
-- Strict type annotations everywhere; `X | None` not `Optional[X]`
 - Google-style docstrings on all public functions, classes, modules
 - No repeated logic: shared queries → `repositories/`, shared logic → `services/`
-- `mypy backend/ --strict` must pass — use `source venv/bin/activate && python3 -m mypy backend/ --strict`
-- `ruff check` + `ruff format` — use `python3 -m ruff check backend/ && python3 -m ruff format --check backend/`
-- After any code change: run ruff + mypy automatically without asking
+- After any code change: run ruff + mypy **automatically without asking**
 
 ## TypeScript Rules (Phase 4+)
-- `strict: true` in tsconfig.json
-- No `any` types
-- All components typed
+
+> General rules are in `~/.claude/rules/common/coding-style.md`.
+
+- `strict: true` in tsconfig.json — no `any` types
 - React Query for data fetching; Zustand for global state
 
 ## Git Rules
-- Auto stage + commit after each logical change with conventional commit message
+
+> Full workflow is in `~/.claude/rules/common/git-workflow.md`.
+
 - NEVER `git push` without explicit user permission
-- Remote: `origin` → https://github.com/iantsang779/BudgetTracker
+
+---
 
 ## Dev Commands
-- Activate venv first: `source /home/iants/BudgetTracker/venv/bin/activate`
-- Backend tests: `cd backend && pytest tests/ -v --cov=. --cov-fail-under=80`  # 87% coverage, 62 tests
-- Type check: `python3 -m mypy backend/ --strict`
-- Lint check: `python3 -m ruff check backend/ && python3 -m ruff format --check backend/`
-- Lint fix: `python3 -m ruff check --fix backend/ && python3 -m ruff format backend/`
-- Start dev (Phase 8): `bash scripts/dev.sh` → FastAPI :8000, React :5173
 
-### Starting the dev servers (until Phase 8)
+```bash
+# Activate venv (always required first)
+source /home/iants/BudgetTracker/venv/bin/activate
 
-**Backend** — must run from project root so `backend.*` imports resolve:
+# Backend tests (see /pytest-tdd skill for TDD workflow)
+cd backend && pytest tests/ -v --cov=. --cov-fail-under=80
+
+# Type check + lint
+python3 -m mypy backend/ --strict
+python3 -m ruff check backend/ && python3 -m ruff format --check backend/
+python3 -m ruff check --fix backend/ && python3 -m ruff format backend/
+```
+
+### Starting dev servers
+
+**Backend** — run from project root so `backend.*` imports resolve:
 ```bash
 source /home/iants/BudgetTracker/venv/bin/activate
 cd /home/iants/BudgetTracker
@@ -225,8 +199,6 @@ Open http://localhost:5173 — both servers must be running simultaneously.
 
 ## Phase 6 — Voice Input (Next)
 
-Implement voice-based transaction entry using the Web Speech API in Electron's Chromium and a backend NLP parser.
-
 ### Files to create
 
 | File | Purpose |
@@ -236,26 +208,13 @@ Implement voice-based transaction entry using the Web Speech API in Electron's C
 | `frontend/src/hooks/useVoiceInput.ts` | Web Speech API hook: start/stop, transcript, parsed result |
 | `frontend/src/components/transactions/VoiceInputButton.tsx` | Mic button: triggers hook, shows transcript, auto-fills TransactionForm |
 
-### voice_service.py notes
+### voice_service.py spec
 - Input: raw transcript string
 - Output: `VoiceParseResponse` with `amount`, `currency_code`, `description`, `merchant`, `transaction_date`, `category_hint`, `confidence`
-- Use regex + keyword matching (no external ML dependency for Phase 6)
-- Examples: "spent 42 dollars on coffee at Starbucks" → `{amount: 42, currency: USD, merchant: "Starbucks", category_hint: "coffee"}`
+- Use regex + keyword matching (no external ML)
+- Example: `"spent 42 dollars on coffee at Starbucks"` → `{amount: 42, currency: USD, merchant: "Starbucks", category_hint: "coffee"}`
 
-### useVoiceInput.ts notes
+### useVoiceInput.ts spec
 - `window.SpeechRecognition` / `window.webkitSpeechRecognition`
 - Returns `{ listening, transcript, start, stop, parseResult }`
 - On final transcript: POST to `/api/v1/voice/parse` → auto-populate form fields
-
-### Dev commands
-```bash
-source /home/iants/.nvm/nvm.sh
-cd frontend && npm run dev   # frontend :5173
-# separate terminal:
-source venv/bin/activate && uvicorn backend.main:app --reload --port 8000
-```
-
-### Verification
-- `npx tsc --noEmit` → 0 errors
-- `pytest tests/ -v --cov=. --cov-fail-under=80`
-- Click mic button → speak → transcript appears → form fields auto-filled

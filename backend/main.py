@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.config import settings
 from backend.database import Base, engine, get_db
 from backend.models.category import Category
-from backend.routers import accounts, analytics, categories, currency, income, transactions
+from backend.routers import accounts, analytics, categories, currency, income, transactions, voice
 from backend.websocket_manager import manager
 
 logging.basicConfig(level=logging.INFO)
@@ -90,6 +90,7 @@ app.include_router(transactions.router, prefix="/api/v1")
 app.include_router(income.router, prefix="/api/v1")
 app.include_router(currency.router, prefix="/api/v1")
 app.include_router(analytics.router, prefix="/api/v1")
+app.include_router(voice.router, prefix="/api/v1")
 
 
 @app.get("/health")

@@ -25,13 +25,13 @@ from backend.models.transaction import Transaction
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-async def _table_info(session: AsyncSession, table: str) -> dict[str, dict]:
+async def _table_info(session: AsyncSession, table: str) -> dict[str, dict[str, object]]:
     """Return PRAGMA table_info rows keyed by column name."""
     result = await session.execute(sa.text(f"PRAGMA table_info({table})"))
     return {row[1]: {"type": row[2], "notnull": bool(row[3]), "pk": bool(row[5])} for row in result}
 
 
-async def _fk_list(session: AsyncSession, table: str) -> list[dict]:
+async def _fk_list(session: AsyncSession, table: str) -> list[dict[str, object]]:
     """Return PRAGMA foreign_key_list rows as dicts."""
     result = await session.execute(sa.text(f"PRAGMA foreign_key_list({table})"))
     return [{"from": row[3], "table": row[2], "to": row[4]} for row in result]
@@ -39,9 +39,7 @@ async def _fk_list(session: AsyncSession, table: str) -> list[dict]:
 
 async def _tables(session: AsyncSession) -> set[str]:
     """Return the set of all table names in the database."""
-    result = await session.execute(
-        sa.text("SELECT name FROM sqlite_master WHERE type='table'")
-    )
+    result = await session.execute(sa.text("SELECT name FROM sqlite_master WHERE type='table'"))
     return {row[0] for row in result}
 
 

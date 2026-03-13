@@ -198,6 +198,19 @@ export interface SpendingOverTimeResponse {
   points: SpendingOverTimePoint[]
 }
 
+// ── Voice ─────────────────────────────────────────────────────────────────────
+
+export interface VoiceParseResponse {
+  amount: number | null
+  currency_code: string | null
+  description: string | null
+  merchant: string | null
+  transaction_date: string | null
+  category_hint: string | null
+  confidence: number
+  raw_transcript: string
+}
+
 // ── Currency ──────────────────────────────────────────────────────────────────
 
 export interface CurrencyRateRead {
